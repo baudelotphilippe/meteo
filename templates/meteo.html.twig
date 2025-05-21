@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Météo
+{% endblock %}
+
+{% block body %}
+	<section class="container my-4">
+		<h1 class="mb-4 text-center">Météo à
+			{{ ville }}</h1>
+		<h2 class="mt-4">Maintenant</h2>
+		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
+			{% for source in sources %}
+				<div class="col">
+					<div class="card h-100 shadow-sm d-flex flex-column justify-content-between">
+						<div class="card-body">
+							<h5 class="card-title">{{ source.provider }}</h5>
+							<p class="card-text mb-1">🌡 Température :
+								{{ source.temperature }}
+								°C</p>
+							{% if source.description %}
+								<p class="card-text mb-1">☁
+									{{ source.description }}</p>
+							{% endif %}
+							{% if source.humidity is not null %}
+								<p class="card-text mb-1">💧 Humidité :
+									{{ source.humidity }}
+									%</p>
+							{% endif %}
+							<p class="card-text">💨 Vent :
+								{{ source.wind }}
+								km/h</p>
+						</div>
+						<div class="card-footer bg-transparent text-center">
+							<a href="{{ source.sourceUrl }}" target="_blank">
+								<img src="{{ source.logoUrl }}" alt="{{ source.sourceName }}" style="max-height: 30px;">
+							</a>
+						</div>
+					</div>
+				</div>
+			{% endfor %}
+		</div>
+
+		<h2 class="mb-3">Prévisions</h2>
+
+		<div class="table-responsive">
+			<table class="table table-bordered text-center align-middle">
+				<thead class="table-light">
+					<tr>
+						<th>Source</th>
+						{% set firstForecasts = forecastRows|first %}
+						{% for i in 0..6 %}
+							<th>{{ firstForecasts[i].date|jour_fr }}</th>
+						{% endfor %}
+					</tr>
+				</thead>
+
+
+				<tbody>
+					{% for provider, forecasts in forecastRows %}
+						<tr>
+							<th class="text-start">{{ provider }}</th>
+							{% set prev = null %}
+							{% for forecast in forecasts|slice(0,7) %}
+								<td>
+									<div>
+										<strong>{{ forecast.tmin }}–{{ forecast.tmax }}°C</strong>
+										{% if prev is not null %}
+											{% set diff = forecast.tmax - prev %}
+											{% if diff > 0.5 %}
+												<span class="text-danger">🔺</span>
+											{% elseif diff < -0.5 %}
+												<span class="text-primary">🔻</span>
+											{% else %}
+												<span class="text-primary">=</span>
+											{% endif %}
+										{% endif %}
+									</div>
+									{% if forecast.description %}
+										<div class="text-muted">{{ forecast.description }}</div>
+									{% endif %}
+								</td>
+								{% set prev = forecast.tmax %}
+							{% endfor %}
+						</tr>
+					{% endfor %}
+				</tbody>
+
+			</table>
+		</div>
+
+
+	{% endblock %}

@@ -4,6 +4,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    openweather.api_key: '%env(OPENWEATHER_API_KEY)%'
+    weatherapi.key: '%env(WEATHERAPI_KEY)%'
 
 services:
     # default configuration for services in *this* file
@@ -20,5 +22,21 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
+    # Services avec paramètre API
+    App\Service\OpenWeatherService:
+        arguments:
+            $apiKey: '%openweather.api_key%'
+    App\Service\WeatherApiService:
+        arguments:
+            $apiKey: '%weatherapi.key%'
+
+    # Agrégateur météo : injection des providers
+    App\Service\WeatherAggregator:
+        arguments:
+            $providers: !tagged_iterator app.weather_provider
+
+
+    # Agrégateur prévisions : injection des providers
+    App\Service\ForecastAggregator:
+        arguments:
+            $providers: !tagged_iterator app.forecast_provider
