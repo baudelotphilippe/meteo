@@ -4,13 +4,16 @@ namespace App\Service;
 
 use App\Dto\WeatherData;
 use App\Dto\ForecastData;
+use App\Dto\HourlyForecastData;
 use App\Config\CityCoordinates;
 use App\Service\WeatherProviderInterface;
+use App\Service\HourlyForecastProviderInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInterface
+class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
     private string $endpoint = 'https://api.open-meteo.com/v1/forecast';
+    private array $hourlyData = [];
 
     public function __construct(private HttpClientInterface $client) {}
 
@@ -44,12 +47,14 @@ class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInt
                 'latitude' => CityCoordinates::LAT,
                 'longitude' => CityCoordinates::LON,
                 'daily' => 'temperature_2m_min,temperature_2m_max,weathercode',
+                'hourly' => 'temperature_2m,weathercode',
                 'timezone' => 'auto'
             ]
         ]);
 
         $data = $response->toArray();
 
+        $this->hourlyData = $data['hourly'];
         $dates = $data['daily']['time'];
         $tmins = $data['daily']['temperature_2m_min'];
         $tmaxs = $data['daily']['temperature_2m_max'];
@@ -70,6 +75,44 @@ class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInt
         }
 
         return $forecasts;
+    }
+
+    public function getTodayHourly(): array
+    {
+        if (empty($this->hourlyData)) {
+            return []; // getForecast() n’a pas encore été appelé
+        }
+
+        $today = (new \DateTimeImmutable())->format('Y-m-d');
+        $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+
+        $result = [];
+
+        foreach ($this->hourlyData['time'] as $i => $iso) {
+            $dt = new \DateTimeImmutable($iso);
+            if ($dt->format('Y-m-d') !== $today) {
+                continue;
+            }
+
+            $heure = $dt->format('H:i');
+            if (!in_array($heure, $heuresSouhaitees)) {
+                continue;
+            }
+
+            $temp = $this->hourlyData['temperature_2m'][$i];
+            $code = $this->hourlyData['weathercode'][$i];
+            $info = $this->translateWeatherCode($code);
+
+            $result[] = new HourlyForecastData(
+                provider: 'Open-Meteo',
+                time: $dt->format('H\hi'),
+                temperature: $temp,
+                description: $info['label'],
+                icon: $info['icon']
+            );
+        }
+
+        return $result;
     }
 
     private function translateWeatherCode(int $code): array

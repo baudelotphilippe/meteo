@@ -4,14 +4,18 @@ namespace App\Service;
 
 use App\Dto\WeatherData;
 use App\Dto\ForecastData;
+use App\Dto\HourlyForecastData;
 use App\Config\CityCoordinates;
 use App\Service\WeatherProviderInterface;
 use App\Service\ForecastProviderInterface;
+use App\Service\HourlyForecastProviderInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class OpenWeatherService implements WeatherProviderInterface, ForecastProviderInterface
+class OpenWeatherService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
     private string $endpoint = 'https://api.openweathermap.org/data/2.5/weather';
+    private array $forecastData = [];
+
 
     public function __construct(private HttpClientInterface $client, private string $apiKey) {}
 
@@ -52,6 +56,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
         $data = $response->toArray();
         $grouped = [];
+        $this->forecastData = $data['list'];
 
         foreach ($data['list'] as $entry) {
             $dt = new \DateTimeImmutable($entry['dt_txt']);
@@ -81,6 +86,43 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
         return $forecasts;
     }
+
+    public function getTodayHourly(): array
+    {
+        if (empty($this->forecastData)) {
+            return [];
+        }
+
+        $today = (new \DateTimeImmutable())->format('Y-m-d');
+        $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+        $result = [];
+
+        foreach ($this->forecastData as $entry) {
+            $dt = new \DateTimeImmutable($entry['dt_txt']);
+            if ($dt->format('Y-m-d') !== $today) {
+                continue;
+            }
+
+            $heure = $dt->format('H:i');
+            if (!in_array($heure, $heuresSouhaitees)) {
+                continue;
+            }
+
+            $icon = $this->iconFromCode($entry['weather'][0]['icon']);
+
+            $result[] = new HourlyForecastData(
+                provider: 'OpenWeather',
+                time: $dt->format('H\hi'),
+                temperature: $entry['main']['temp'],
+                description: $entry['weather'][0]['description'],
+                icon: $icon
+            );
+        }
+
+        return $result;
+    }
+
+
     private function iconFromCode(string $code): string
     {
         return match (substr($code, 0, 2)) {

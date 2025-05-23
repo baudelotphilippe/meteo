@@ -35,6 +35,10 @@ services:
         arguments:
             $providers: !tagged_iterator app.weather_provider
 
+    # Agrégateur prévision du jour : injection des providers
+    App\Service\HourlyForecastAggregator:
+        arguments:
+            $providers: !tagged_iterator app.hourly_forecast
 
     # Agrégateur prévisions : injection des providers
     App\Service\ForecastAggregator:

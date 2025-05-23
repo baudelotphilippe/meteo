@@ -4,7 +4,10 @@ namespace App\Controller;
 
 use App\Config\CityCoordinates;
 use App\Service\ForecastAggregator;
+use App\Service\HourlyForecastAggregator;
+use App\Service\OpenWeatherService;
 use App\Service\WeatherAggregator;
+use App\Service\WeatherApiService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -12,8 +15,8 @@ use Symfony\Component\Routing\Attribute\Route;
 class WeatherController extends AbstractController
 {
 
-    #[Route('/meteo', name: 'weather')]
-    function meteo(WeatherAggregator $weather_aggregator, ForecastAggregator $forecast_aggregator): Response
+    #[Route('/', name: 'weather')]
+    function meteo(WeatherAggregator $weather_aggregator, ForecastAggregator $forecast_aggregator, HourlyForecastAggregator $hourly_forecast_aggregator): Response
     {
         $forecastRows = [];
 
@@ -23,6 +26,6 @@ class WeatherController extends AbstractController
         }
 
 
-        return $this->render('meteo.html.twig', ['ville' => CityCoordinates::CITY, 'sources' => $weather_aggregator->getAll(), 'forecastRows' => $forecastRows]);
+        return $this->render('meteo.html.twig', ['ville' => CityCoordinates::CITY, 'sources' => $weather_aggregator->getAll(), 'forecastRows' => $forecastRows, 'todayHourly' => $hourly_forecast_aggregator->getAll()]);
     }
 }

@@ -40,7 +40,46 @@
 			{% endfor %}
 		</div>
 
-		<h2 class="mb-3">Prévisions</h2>
+		<h2>Prévisions pour aujourd'hui</h2>
+		<div class="table-responsive">
+			<table class="table table-bordered text-center align-middle">
+				<thead class="table-light">
+					<tr>
+						<th>Source</th>
+						{% set allTimes = ['06h00','09h00','12h00','15h00','18h00','21h00'] %}
+						{% for time in allTimes %}
+							<th>{{ time }}</th>
+						{% endfor %}
+					</tr>
+				</thead>
+				<tbody>
+					{% for provider, forecasts in todayHourly %}
+						<tr>
+							<th class="text-start">{{ provider }}</th>
+							{% for time in allTimes %}
+								{% set found = forecasts|filter(f => f.time == time)|first %}
+								<td>
+									{% if found is not same as(false) %}
+										<div style="font-size: 1.2em;">{{ found.icon }}</div>
+										<div>
+											<strong>{{ found.temperature }}°C</strong>
+										</div>
+										<div>
+											<small>{{ found.description }}</small>
+										</div>
+									{% else %}
+										<div style="opacity: 0.3;">—</div>
+									{% endif %}
+								</td>
+							{% endfor %}
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+
+
+		<h2 class="mt-4">Prévisions</h2>
 
 		<div class="table-responsive">
 			<table class="table table-bordered text-center align-middle">

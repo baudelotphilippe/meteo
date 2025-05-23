@@ -10,9 +10,11 @@ use App\Service\ForecastProviderInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
-class MetNoService implements WeatherProviderInterface, ForecastProviderInterface
+class MetNoService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
     private string $endpoint = 'https://api.met.no/weatherapi/locationforecast/2.0/compact';
+    private array $timeseries = [];
+
 
     public function __construct(private HttpClientInterface $client) {}
 
@@ -45,18 +47,20 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
             );
         } catch (TransportExceptionInterface $e) {
             // Optionnel : en cas d’erreur réseau, retourne une valeur par défaut ou null
-            return new WeatherData( provider: 'Met.no',
+            return new WeatherData(
+                provider: 'Met.no',
                 temperature: 0,
                 description: null,
                 humidity: null,
                 wind: 0,
                 sourceName: 'MET Norway (Yr.no)',
                 logoUrl: 'https://www.met.no/_/image/9d963a8e-34d3-474e-8b53-70cfd6ddee6a:ff706c6507f82977d3453bd29eb71e4c44b60a0b/logo_met_no.svg',
-                sourceUrl: 'https://api.met.no/weatherapi/locationforecast/2.0/documentation');
+                sourceUrl: 'https://api.met.no/weatherapi/locationforecast/2.0/documentation'
+            );
         }
     }
 
-     public function getForecast(): array
+    public function getForecast(): array
     {
         $response = $this->client->request('GET', 'https://api.met.no/weatherapi/locationforecast/2.0/compact', [
             'query' => [
@@ -69,11 +73,11 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         ]);
 
         $data = $response->toArray();
-        $timeseries = $data['properties']['timeseries'];
+        $this->timeseries = $data['properties']['timeseries'];
 
         $jours = [];
 
-        foreach ($timeseries as $entry) {
+        foreach ($this->timeseries as $entry) {
             $date = new \DateTimeImmutable($entry['time']);
             $dayKey = $date->format('Y-m-d');
 
@@ -96,12 +100,83 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 date: new \DateTimeImmutable($day),
                 tmin: min($temps),
                 tmax: max($temps),
-                description:null
+                description: null
             );
 
             $i++;
         }
 
         return $result;
+    }
+
+    public function getTodayHourly(): array
+    {
+        $result = [];
+        $today = (new \DateTimeImmutable())->format('Y-m-d');
+        $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+
+        foreach ($this->timeseries as $entry) {
+            $dt = (new \DateTimeImmutable($entry['time']))->setTimezone(new \DateTimeZone('Europe/Paris'));
+
+            if ($dt->format('Y-m-d') !== $today) {
+                continue;
+            }
+
+            $heure = $dt->format('H:i');
+            if (!in_array($heure, $heuresSouhaitees)) {
+                continue;
+            }
+
+            $details = $entry['data']['instant']['details'] ?? [];
+            if (!isset($details['air_temperature'])) {
+                continue;
+            }
+
+            $temp = $details['air_temperature'];
+            $symbolCode = $entry['data']['next_1_hours']['summary']['symbol_code'] ?? null;
+
+            $result[] = new \App\Dto\HourlyForecastData(
+                provider: 'Met.no',
+                time: $dt->format('H\hi'),
+                temperature: $temp,
+                description: $this->translateSymbol($symbolCode ?? 'inconnu'),
+                icon: $this->iconFromSymbol($symbolCode)
+            );
+        }
+
+        return $result;
+    }
+    private function iconFromSymbol(?string $code): string
+    {
+        if (!$code) return '🌡️';
+
+        return match (true) {
+            str_contains($code, 'clearsky') => '☀️',
+            str_contains($code, 'cloudy') => '☁️',
+            str_contains($code, 'fair') => '🌤️',
+            str_contains($code, 'partlycloudy') => '⛅',
+            str_contains($code, 'rain') => '🌧️',
+            str_contains($code, 'snow') => '❄️',
+            str_contains($code, 'fog') => '🌫️',
+            str_contains($code, 'thunderstorm') => '⛈️',
+            default => '🌡️',
+        };
+    }
+
+    private function translateSymbol(string $symbol): string
+    {
+        return match ($symbol) {
+            'clearsky_day', 'clearsky_night' => 'Ciel clair',
+            'fair_day', 'fair_night' => 'Ensoleillé',
+            'partlycloudy_day', 'partlycloudy_night' => 'Partiellement nuageux',
+            'cloudy' => 'Nuageux',
+            'lightrain', 'lightrain_day', 'lightrain_night' => 'Pluie légère',
+            'rain', 'rain_day', 'rain_night' => 'Pluie',
+            'heavyrain' => 'Pluie forte',
+            'snow', 'heavysnow' => 'Neige',
+            'fog' => 'Brouillard',
+            'thunderstorm' => 'Orage',
+            default => 'Inconnu',
+        };
     }
 }
