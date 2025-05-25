@@ -7,6 +7,7 @@ use App\Dto\ForecastData;
 use App\Config\CityCoordinates;
 use App\Service\WeatherProviderInterface;
 use App\Service\ForecastProviderInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
@@ -16,7 +17,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
     private array $timeseries = [];
 
 
-    public function __construct(private HttpClientInterface $client) {}
+    public function __construct(private HttpClientInterface $client, private LoggerInterface $logger) {}
 
     public function getWeather(): WeatherData
     {
@@ -165,13 +166,14 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
     private function translateSymbol(string $symbol): string
     {
+        // $this->logger->info($symbol);
         return match ($symbol) {
             'clearsky_day', 'clearsky_night' => 'Ciel clair',
             'fair_day', 'fair_night' => 'Ensoleillé',
             'partlycloudy_day', 'partlycloudy_night' => 'Partiellement nuageux',
             'cloudy' => 'Nuageux',
             'lightrain', 'lightrain_day', 'lightrain_night' => 'Pluie légère',
-            'rain', 'rain_day', 'rain_night' => 'Pluie',
+            'rain', 'rain_day', 'rain_night', 'rainshowers_day' => 'Pluie',
             'heavyrain' => 'Pluie forte',
             'snow', 'heavysnow' => 'Neige',
             'fog' => 'Brouillard',
