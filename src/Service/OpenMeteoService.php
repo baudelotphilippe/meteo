@@ -10,17 +10,17 @@ use App\Service\WeatherProviderInterface;
 use App\Service\HourlyForecastProviderInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\{ClientExceptionInterface, ServerExceptionInterface, TransportExceptionInterface, RedirectionExceptionInterface};
 
-class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
+class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
     private string $endpoint = 'https://api.open-meteo.com/v1/forecast';
     private array $hourlyData = [];
 
-    public function __construct(private HttpClientInterface $client, private LoggerInterface $logger) {}
+    public function __construct(
+        private HttpClientInterface $client,
+        private LoggerInterface $logger
+    ) {}
 
     public function getWeather(): WeatherData
     {
@@ -33,10 +33,13 @@ class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInt
                     'timezone' => 'auto'
                 ]
             ])->toArray();
+
+            $weatherInfo = $this->getWeatherInfo($data['current_weather']['weathercode']);
+
             return new WeatherData(
                 provider: 'Open-Meteo',
                 temperature: $data['current_weather']['temperature'],
-                description: null,
+                description: $weatherInfo['label'],
                 humidity: null,
                 wind: $data['current_weather']['windspeed'],
                 sourceName: 'Open-Meteo (ECMWF, DWD, NOAA)',
@@ -58,7 +61,6 @@ class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInt
         }
     }
 
-
     public function getForecast(): array
     {
         try {
@@ -73,34 +75,23 @@ class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInt
             ]);
 
             $data = $response->toArray();
-
             $this->hourlyData = $data['hourly'];
-            $dates = $data['daily']['time'];
-            $tmins = $data['daily']['temperature_2m_min'];
-            $tmaxs = $data['daily']['temperature_2m_max'];
-            $codes = $data['daily']['weathercode'];
 
             $forecasts = [];
-
-            foreach ($dates as $i => $day) {
-                $info = $this->translateWeatherCode($codes[$i]);
+            foreach ($data['daily']['time'] as $i => $day) {
+                $info = $this->getWeatherInfo($data['daily']['weathercode'][$i]);
 
                 $forecasts[] = new ForecastData(
                     provider: 'Open-Meteo',
                     date: new \DateTimeImmutable($day),
-                    tmin: $tmins[$i],
-                    tmax: $tmaxs[$i],
+                    tmin: $data['daily']['temperature_2m_min'][$i],
+                    tmax: $data['daily']['temperature_2m_max'][$i],
                     description: $info['icon'] . ' ' . $info['label']
                 );
             }
 
             return $forecasts;
-        } catch (
-            TransportExceptionInterface |
-            ClientExceptionInterface |
-            ServerExceptionInterface |
-            RedirectionExceptionInterface $e
-        ) {
+        } catch (TransportExceptionInterface | ClientExceptionInterface | ServerExceptionInterface | RedirectionExceptionInterface $e) {
             $this->logger->error('Erreur API Prévisions OpenMeteo : ' . $e->getMessage());
             return [];
         }
@@ -114,28 +105,20 @@ class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInt
 
         $today = (new \DateTimeImmutable())->format('Y-m-d');
         $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
-
         $result = [];
 
         foreach ($this->hourlyData['time'] as $i => $iso) {
             $dt = new \DateTimeImmutable($iso);
-            if ($dt->format('Y-m-d') !== $today) {
+            if ($dt->format('Y-m-d') !== $today || !in_array($dt->format('H:i'), $heuresSouhaitees)) {
                 continue;
             }
 
-            $heure = $dt->format('H:i');
-            if (!in_array($heure, $heuresSouhaitees)) {
-                continue;
-            }
-
-            $temp = $this->hourlyData['temperature_2m'][$i];
-            $code = $this->hourlyData['weathercode'][$i];
-            $info = $this->translateWeatherCode($code);
+            $info = $this->getWeatherInfo($this->hourlyData['weathercode'][$i]);
 
             $result[] = new HourlyForecastData(
                 provider: 'Open-Meteo',
                 time: $dt->format('H\hi'),
-                temperature: $temp,
+                temperature: $this->hourlyData['temperature_2m'][$i],
                 description: $info['label'],
                 icon: $info['icon']
             );
@@ -144,9 +127,9 @@ class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInt
         return $result;
     }
 
-    private function translateWeatherCode(int $code): array
+    private function getWeatherInfo(int $code): array
     {
-        return match ($code) {
+        $map = [
             0 => ['icon' => '☀️', 'label' => 'Ciel clair'],
             1 => ['icon' => '🌤️', 'label' => 'Principalement clair'],
             2 => ['icon' => '⛅', 'label' => 'Partiellement nuageux'],
@@ -162,7 +145,8 @@ class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInt
             85, 86 => ['icon' => '❄️', 'label' => 'Averses de neige'],
             95 => ['icon' => '⛈️', 'label' => 'Orage'],
             96, 99 => ['icon' => '⛈️', 'label' => 'Orage avec grêle'],
-            default => ['icon' => '🌡️', 'label' => 'Inconnu'],
-        };
+        ];
+
+        return $map[$code] ?? ['icon' => '🌡️', 'label' => 'Inconnu'];
     }
 }
