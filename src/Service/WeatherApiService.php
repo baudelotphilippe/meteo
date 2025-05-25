@@ -100,7 +100,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             str_contains($t, 'orage') => '⛈️',
             str_contains($t, 'neige') => '❄️',
             str_contains($t, 'pluie') => '🌧️',
-            str_contains($t, 'nuage') => '☁️',
+            str_contains($t, 'nuage'), str_contains($t, 'couvert') => '☁️',
             str_contains($t, 'bruine') => '🌦️',
             str_contains($t, 'ensoleillé'), str_contains($t, 'soleil') => '☀️',
             str_contains($t, 'brouillard') => '🌫️',
