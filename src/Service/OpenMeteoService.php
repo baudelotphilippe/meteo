@@ -4,77 +4,106 @@ namespace App\Service;
 
 use App\Dto\WeatherData;
 use App\Dto\ForecastData;
-use App\Dto\HourlyForecastData;
 use App\Config\CityCoordinates;
+use App\Dto\HourlyForecastData;
 use App\Service\WeatherProviderInterface;
 use App\Service\HourlyForecastProviderInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 
 class OpenMeteoService  implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
     private string $endpoint = 'https://api.open-meteo.com/v1/forecast';
     private array $hourlyData = [];
 
-    public function __construct(private HttpClientInterface $client) {}
+    public function __construct(private HttpClientInterface $client, private LoggerInterface $logger) {}
 
     public function getWeather(): WeatherData
     {
-        $data = $this->client->request('GET', $this->endpoint, [
-            'query' => [
-                'latitude' => CityCoordinates::LAT,
-                'longitude' => CityCoordinates::LON,
-                'current_weather' => true,
-                'timezone' => 'auto'
-            ]
-        ])->toArray();
-        return new WeatherData(
-            provider: 'Open-Meteo',
-            temperature: $data['current_weather']['temperature'],
-            description: null,
-            humidity: null,
-            wind: $data['current_weather']['windspeed'],
-            sourceName: 'Open-Meteo (ECMWF, DWD, NOAA)',
-            logoUrl: 'https://apps.homeycdn.net/app/com.spkes.openMeteo/21/0649a343-6f0b-4a54-9f68-ad818aaab853/drivers/weather/assets/images/large.png',
-            sourceUrl: 'https://open-meteo.com/en/docs'
-        );
+        try {
+            $data = $this->client->request('GET', $this->endpoint, [
+                'query' => [
+                    'latitude' => CityCoordinates::LAT,
+                    'longitude' => CityCoordinates::LON,
+                    'current_weather' => true,
+                    'timezone' => 'auto'
+                ]
+            ])->toArray();
+            return new WeatherData(
+                provider: 'Open-Meteo',
+                temperature: $data['current_weather']['temperature'],
+                description: null,
+                humidity: null,
+                wind: $data['current_weather']['windspeed'],
+                sourceName: 'Open-Meteo (ECMWF, DWD, NOAA)',
+                logoUrl: 'https://apps.homeycdn.net/app/com.spkes.openMeteo/21/0649a343-6f0b-4a54-9f68-ad818aaab853/drivers/weather/assets/images/large.png',
+                sourceUrl: 'https://open-meteo.com/en/docs'
+            );
+        } catch (TransportExceptionInterface $e) {
+            $this->logger->error('Erreur API Weather OpenMeteo : ' . $e->getMessage());
+            return new WeatherData(
+                provider: 'Open-Meteo',
+                temperature: 0,
+                description: $e->getMessage(),
+                humidity: null,
+                wind: 0,
+                sourceName: 'Open-Meteo (ECMWF, DWD, NOAA)',
+                logoUrl: 'https://apps.homeycdn.net/app/com.spkes.openMeteo/21/0649a343-6f0b-4a54-9f68-ad818aaab853/drivers/weather/assets/images/large.png',
+                sourceUrl: 'https://open-meteo.com/en/docs'
+            );
+        }
     }
 
 
     public function getForecast(): array
     {
-        $response = $this->client->request('GET', 'https://api.open-meteo.com/v1/forecast', [
-            'query' => [
-                'latitude' => CityCoordinates::LAT,
-                'longitude' => CityCoordinates::LON,
-                'daily' => 'temperature_2m_min,temperature_2m_max,weathercode',
-                'hourly' => 'temperature_2m,weathercode',
-                'timezone' => 'auto'
-            ]
-        ]);
+        try {
+            $response = $this->client->request('GET', $this->endpoint, [
+                'query' => [
+                    'latitude' => CityCoordinates::LAT,
+                    'longitude' => CityCoordinates::LON,
+                    'daily' => 'temperature_2m_min,temperature_2m_max,weathercode',
+                    'hourly' => 'temperature_2m,weathercode',
+                    'timezone' => 'auto'
+                ]
+            ]);
 
-        $data = $response->toArray();
+            $data = $response->toArray();
 
-        $this->hourlyData = $data['hourly'];
-        $dates = $data['daily']['time'];
-        $tmins = $data['daily']['temperature_2m_min'];
-        $tmaxs = $data['daily']['temperature_2m_max'];
-        $codes = $data['daily']['weathercode'];
+            $this->hourlyData = $data['hourly'];
+            $dates = $data['daily']['time'];
+            $tmins = $data['daily']['temperature_2m_min'];
+            $tmaxs = $data['daily']['temperature_2m_max'];
+            $codes = $data['daily']['weathercode'];
 
-        $forecasts = [];
+            $forecasts = [];
 
-        foreach ($dates as $i => $day) {
-            $info = $this->translateWeatherCode($codes[$i]);
+            foreach ($dates as $i => $day) {
+                $info = $this->translateWeatherCode($codes[$i]);
 
-            $forecasts[] = new ForecastData(
-                provider: 'Open-Meteo',
-                date: new \DateTimeImmutable($day),
-                tmin: $tmins[$i],
-                tmax: $tmaxs[$i],
-                description: $info['icon'] . ' ' . $info['label']
-            );
+                $forecasts[] = new ForecastData(
+                    provider: 'Open-Meteo',
+                    date: new \DateTimeImmutable($day),
+                    tmin: $tmins[$i],
+                    tmax: $tmaxs[$i],
+                    description: $info['icon'] . ' ' . $info['label']
+                );
+            }
+
+            return $forecasts;
+        } catch (
+            TransportExceptionInterface |
+            ClientExceptionInterface |
+            ServerExceptionInterface |
+            RedirectionExceptionInterface $e
+        ) {
+            $this->logger->error('Erreur API Prévisions OpenMeteo : ' . $e->getMessage());
+            return [];
         }
-
-        return $forecasts;
     }
 
     public function getTodayHourly(): array

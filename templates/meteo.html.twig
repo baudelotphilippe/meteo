@@ -1,131 +1,123 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Météo
-{% endblock %}
+{% block title %}Météo{% endblock %}
 
 {% block body %}
-	<section class="container my-4">
-		<h1 class="mb-4 text-center">Météo à
-			{{ ville }}</h1>
-		<h2 class="mt-4">Maintenant</h2>
-		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
-			{% for source in sources %}
-				<div class="col">
-					<div class="card h-100 shadow-sm d-flex flex-column justify-content-between">
-						<div class="card-body">
-							<h5 class="card-title">{{ source.provider }}</h5>
-							<p class="card-text mb-1">🌡 Température :
-								{{ source.temperature }}
-								°C</p>
-							{% if source.description %}
-								<p class="card-text mb-1">☁
-									{{ source.description }}</p>
-							{% endif %}
-							{% if source.humidity is not null %}
-								<p class="card-text mb-1">💧 Humidité :
-									{{ source.humidity }}
-									%</p>
-							{% endif %}
-							<p class="card-text">💨 Vent :
-								{{ source.wind }}
-								km/h</p>
-						</div>
-						<div class="card-footer bg-transparent text-center">
-							<a href="{{ source.sourceUrl }}" target="_blank">
-								<img src="{{ source.logoUrl }}" alt="{{ source.sourceName }}" style="max-height: 30px;">
-							</a>
-						</div>
-					</div>
-				</div>
-			{% endfor %}
-		</div>
+<section class="container my-4">
+    <h1 class="mb-4">Météo à {{ ville }}</h1>
 
-		<h2>Prévisions pour aujourd'hui</h2>
-		<div class="table-responsive">
-			<table class="table table-bordered text-center align-middle">
-				<thead class="table-light">
-					<tr>
-						<th>Source</th>
-						{% set allTimes = ['06h00','09h00','12h00','15h00','18h00','21h00'] %}
-						{% for time in allTimes %}
-							<th>{{ time }}</th>
-						{% endfor %}
-					</tr>
-				</thead>
-				<tbody>
-					{% for provider, forecasts in todayHourly %}
-						<tr>
-							<th class="text-start">{{ provider }}</th>
-							{% for time in allTimes %}
-								{% set found = forecasts|filter(f => f.time == time)|first %}
-								<td>
-									{% if found is not same as(false) %}
-										<div style="font-size: 1.2em;">{{ found.icon }}</div>
-										<div>
-											<strong>{{ found.temperature }}°C</strong>
-										</div>
-										<div>
-											<small>{{ found.description }}</small>
-										</div>
-									{% else %}
-										<div style="opacity: 0.3;">—</div>
-									{% endif %}
-								</td>
-							{% endfor %}
-						</tr>
-					{% endfor %}
-				</tbody>
-			</table>
-		</div>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
+        {% for source in sources %}
+            <div class="col">
+                <div class="card h-100 d-flex flex-column justify-content-between">
+                    <div class="card-body text-center">
+                        <p class="fs-1 fw-bold mb-2">{{ source.temperature }} °C</p>
 
+                        {% if source.description %}
+                            <p class="card-text mb-1">☁ {{ source.description }}</p>
+                        {% endif %}
+                        {% if source.humidity is not null %}
+                            <p class="card-text mb-1">💧 Humidité : {{ source.humidity }} %</p>
+                        {% endif %}
+                        <p class="card-text mb-0">💨 Vent : {{ source.wind }} km/h</p>
+                    </div>
+                    <div class="card-footer text-center">
+                        <a href="{{ source.sourceUrl }}" target="_blank">
+                            <img src="{{ source.logoUrl }}" alt="{{ source.sourceName }}" style="max-height: 30px;"><span class="ms-3 card-title">{{ source.provider }}</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 
-		<h2 class="mt-4">Prévisions</h2>
+    <h2>Prévisions pour aujourd'hui</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Source</th>
+                    {% set allTimes = ['06h00','09h00','12h00','15h00','18h00','21h00'] %}
+                    {% for time in allTimes %}
+                        {% set hour = time|slice(0,2) + 0 %}
+                        {% set nowHour = "now"|date("H") + 0 %}
+                        <th class="{{ hour < nowHour ? 'past-hour' }}">
+                            {{ time }}
+                        </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for provider, forecasts in todayHourly %}
+                    <tr>
+                        <th class="text-start">{{ provider }}</th>
+                        {% for time in allTimes %}
+                            {% set found = forecasts|filter(f => f.time == time)|first %}
+                            {% set hour = time|slice(0,2) + 0 %}
+                            {% set nowHour = "now"|date("H") + 0 %}
+                            <td class="{{ hour < nowHour ? 'past-hour' }}">
+                                {% if found is not same as(false) %}
+                                    <div class="weather-cell">
+                                        <div class="weather-icon">{{ found.icon }}</div>
+                                        <div class="fw-bold">{{ found.temperature }}°C</div>
+                                        <div class="text-muted small">{{ found.description }}</div>
+                                    </div>
+                                {% else %}
+                                    <div style="opacity: 0.3;">—</div>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-		<div class="table-responsive">
-			<table class="table table-bordered text-center align-middle">
-				<thead class="table-light">
-					<tr>
-						<th>Source</th>
-						{% set firstForecasts = forecastRows|first %}
+    <h2 class="mt-4">Prévisions</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Source</th>
+					{% set firstForecasts = forecastRows|first %}
+					{% if firstForecasts is iterable %}
 						{% for i in 0..6 %}
 							<th>{{ firstForecasts[i].date|jour_fr }}</th>
 						{% endfor %}
-					</tr>
-				</thead>
+					{% else %}
+						<th colspan="7" class="text-muted">Pas de prévisions disponibles</th>
+					{% endif %}
 
-
-				<tbody>
-					{% for provider, forecasts in forecastRows %}
-						<tr>
-							<th class="text-start">{{ provider }}</th>
-							{% set prev = null %}
-							{% for forecast in forecasts|slice(0,7) %}
-								<td>
-									<div>
-										<strong>{{ forecast.tmin }}–{{ forecast.tmax }}°C</strong>
-										{% if prev is not null %}
-											{% set diff = forecast.tmax - prev %}
-											{% if diff > 0.5 %}
-												<span class="text-danger">🔺</span>
-											{% elseif diff < -0.5 %}
-												<span class="text-primary">🔻</span>
-											{% else %}
-												<span class="text-primary">=</span>
-											{% endif %}
-										{% endif %}
-									</div>
-									{% if forecast.description %}
-										<div class="text-muted">{{ forecast.description }}</div>
-									{% endif %}
-								</td>
-								{% set prev = forecast.tmax %}
-							{% endfor %}
-						</tr>
-					{% endfor %}
-				</tbody>
-
-			</table>
-		</div>
-
-
-	{% endblock %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for provider, forecasts in forecastRows %}
+                    <tr>
+                        <th class="text-start">{{ provider }}</th>
+                        {% set prev = null %}
+                        {% for forecast in forecasts|slice(0,7) %}
+                            <td>
+                                <div class="fw-bold">{{ forecast.tmin }}–{{ forecast.tmax }}°C</div>
+                                {% if prev is not null %}
+                                    {% set diff = forecast.tmax - prev %}
+                                    {% if diff > 0.5 %}
+                                        <span class="text-danger">🔺</span>
+                                    {% elseif diff < -0.5 %}
+                                        <span class="text-primary">🔻</span>
+                                    {% else %}
+                                        <span class="text-primary">=</span>
+                                    {% endif %}
+                                {% endif %}
+                                {% if forecast.description %}
+                                    <div class="text-muted small">{{ forecast.description }}</div>
+                                {% endif %}
+                            </td>
+                            {% set prev = forecast.tmax %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

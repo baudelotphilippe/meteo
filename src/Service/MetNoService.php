@@ -4,12 +4,15 @@ namespace App\Service;
 
 use App\Dto\WeatherData;
 use App\Dto\ForecastData;
+use Psr\Log\LoggerInterface;
 use App\Config\CityCoordinates;
 use App\Service\WeatherProviderInterface;
 use App\Service\ForecastProviderInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 
 class MetNoService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
@@ -47,11 +50,11 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 sourceUrl: 'https://api.met.no/weatherapi/locationforecast/2.0/documentation'
             );
         } catch (TransportExceptionInterface $e) {
-            // Optionnel : en cas d’erreur réseau, retourne une valeur par défaut ou null
+            $this->logger->error('Erreur API Weather Met.no : ' . $e->getMessage());
             return new WeatherData(
                 provider: 'Met.no',
                 temperature: 0,
-                description: null,
+                description: $e->getMessage(),
                 humidity: null,
                 wind: 0,
                 sourceName: 'MET Norway (Yr.no)',
@@ -63,51 +66,60 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
     public function getForecast(): array
     {
-        $response = $this->client->request('GET', 'https://api.met.no/weatherapi/locationforecast/2.0/compact', [
-            'query' => [
-                'lat' => CityCoordinates::LAT,
-                'lon' => CityCoordinates::LON,
-            ],
-            'headers' => [
-                'User-Agent' => 'MonProjetMeteo/1.0 (mon@email.com)'
-            ]
-        ]);
+        try {
+            $response = $this->client->request('GET', $this->endpoint, [
+                'query' => [
+                    'lat' => CityCoordinates::LAT,
+                    'lon' => CityCoordinates::LON,
+                ],
+                'headers' => [
+                    'User-Agent' => 'MonProjetMeteo/1.0 (mon@email.com)'
+                ]
+            ]);
 
-        $data = $response->toArray();
-        $this->timeseries = $data['properties']['timeseries'];
+            $data = $response->toArray();
+            $this->timeseries = $data['properties']['timeseries'];
 
-        $jours = [];
+            $jours = [];
 
-        foreach ($this->timeseries as $entry) {
-            $date = new \DateTimeImmutable($entry['time']);
-            $dayKey = $date->format('Y-m-d');
+            foreach ($this->timeseries as $entry) {
+                $date = new \DateTimeImmutable($entry['time']);
+                $dayKey = $date->format('Y-m-d');
 
-            if (!isset($entry['data']['instant']['details']['air_temperature'])) {
-                continue;
+                if (!isset($entry['data']['instant']['details']['air_temperature'])) {
+                    continue;
+                }
+
+                $temp = $entry['data']['instant']['details']['air_temperature'];
+
+                $jours[$dayKey][] = $temp;
             }
 
-            $temp = $entry['data']['instant']['details']['air_temperature'];
+            $result = [];
+            $i = 0;
+            foreach ($jours as $day => $temps) {
+                if ($i >= 7) break;
 
-            $jours[$dayKey][] = $temp;
+                $result[] = new ForecastData(
+                    provider: 'Met.no',
+                    date: new \DateTimeImmutable($day),
+                    tmin: min($temps),
+                    tmax: max($temps),
+                    description: null
+                );
+
+                $i++;
+            }
+            return $result;
+        } catch (
+            TransportExceptionInterface |
+            ClientExceptionInterface |
+            ServerExceptionInterface |
+            RedirectionExceptionInterface $e
+        ) {
+            $this->logger->error('Erreur API Previsions Met.no : ' . $e->getMessage());
+            return [];
         }
-
-        $result = [];
-        $i = 0;
-        foreach ($jours as $day => $temps) {
-            if ($i >= 7) break;
-
-            $result[] = new ForecastData(
-                provider: 'Met.no',
-                date: new \DateTimeImmutable($day),
-                tmin: min($temps),
-                tmax: max($temps),
-                description: null
-            );
-
-            $i++;
-        }
-
-        return $result;
     }
 
     public function getTodayHourly(): array

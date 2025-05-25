@@ -6,20 +6,29 @@ use App\Dto\WeatherData;
 use App\Dto\ForecastData;
 use App\Config\CityCoordinates;
 use App\Dto\HourlyForecastData;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 
 class WeatherApiService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
+        private string $endpointWeather = 'https://api.weatherapi.com/v1/current.json';
+    private string $endpointForecast =  'https://api.weatherapi.com/v1/forecast.json';
     private array $hourlyToday = [];
 
     public function __construct(
         private HttpClientInterface $client,
-        private string $apiKey
+        private string $apiKey,
+        private LoggerInterface $logger
     ) {}
 
     public function getWeather(): WeatherData
     {
-        $response = $this->client->request('GET', 'https://api.weatherapi.com/v1/current.json', [
+        try{
+        $response = $this->client->request('GET', $this->endpointWeather , [
             'query' => [
                 'key' => $this->apiKey,
                 'q' => 'Poitiers',
@@ -39,11 +48,25 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             logoUrl: 'https://cdn.weatherapi.com/v4/images/weatherapi_logo.png',
             sourceUrl: 'https://www.weatherapi.com/docs/'
         );
+        } catch(TransportExceptionInterface $e) {
+            $this->logger->error('Erreur API WeatherAPI Met.no : ' . $e->getMessage());
+             return new WeatherData(
+            provider: 'WeatherAPI',
+            temperature: 0,
+            description: $e->getMessage(),
+            humidity: null,
+            wind: 0,
+            sourceName: 'WeatherAPI',
+            logoUrl: 'https://cdn.weatherapi.com/v4/images/weatherapi_logo.png',
+            sourceUrl: 'https://www.weatherapi.com/docs/'
+        );
+        }
     }
 
     public function getForecast(): array
     {
-        $response = $this->client->request('GET', 'https://api.weatherapi.com/v1/forecast.json', [
+        try {
+        $response = $this->client->request('GET', $this->endpointForecast, [
             'query' => [
                 'key' => $this->apiKey,
                 'q' => CityCoordinates::CITY,
@@ -67,6 +90,16 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         }
 
         return $forecasts;
+        }
+        catch (
+            TransportExceptionInterface |
+            ClientExceptionInterface |
+            ServerExceptionInterface |
+            RedirectionExceptionInterface $e
+        ) {
+            $this->logger->error('Erreur API Prévisions WeatherAPI : ' . $e->getMessage());
+            return [];
+        }
     }
 
 
