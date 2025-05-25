@@ -36,18 +36,21 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
             ]);
 
             $data = $response->toArray();
+            $first = $data['properties']['timeseries'][0];
 
-            $first = $data['properties']['timeseries'][0]['data']['instant']['details'];
+            $details = $first['data']['instant']['details'];
+            $symbolCode = $first['data']['next_1_hours']['summary']['symbol_code'] ?? null;
 
             return new WeatherData(
                 provider: 'Met.no',
-                temperature: $first['air_temperature'],
-                description: null,
-                humidity: $first['relative_humidity'] ?? null,
-                wind: $first['wind_speed'],
+                temperature: $details['air_temperature'],
+                description: $this->translateSymbol($symbolCode ?? 'inconnu'),
+                humidity: $details['relative_humidity'] ?? null,
+                wind: $details['wind_speed'] ?? 0,
                 sourceName: 'MET Norway (Yr.no)',
                 logoUrl: 'https://www.met.no/_/asset/no.met.metno:00000196349af260/images/met-logo.svg',
-                sourceUrl: 'https://api.met.no/weatherapi/locationforecast/2.0/documentation'
+                sourceUrl: 'https://api.met.no/weatherapi/locationforecast/2.0/documentation',
+                icon: $this->iconFromSymbol($symbolCode)
             );
         } catch (TransportExceptionInterface $e) {
             $this->logger->error('Erreur API Weather Met.no : ' . $e->getMessage());
@@ -59,7 +62,8 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 wind: 0,
                 sourceName: 'MET Norway (Yr.no)',
                 logoUrl: 'https://www.met.no/_/image/9d963a8e-34d3-474e-8b53-70cfd6ddee6a:ff706c6507f82977d3453bd29eb71e4c44b60a0b/logo_met_no.svg',
-                sourceUrl: 'https://api.met.no/weatherapi/locationforecast/2.0/documentation'
+                sourceUrl: 'https://api.met.no/weatherapi/locationforecast/2.0/documentation',
+                icon: null
             );
         }
     }

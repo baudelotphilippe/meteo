@@ -12,9 +12,9 @@
                 <div class="card h-100 d-flex flex-column justify-content-between">
                     <div class="card-body text-center">
                         <p class="fs-1 fw-bold mb-2">{{ source.temperature }} °C</p>
-
+						<span class="weather-icon">{% if source.icon %}{{ source.icon }}{% endif %}</span>
                         {% if source.description %}
-                            <p class="card-text mb-1">☁ {{ source.description }}</p>
+                            <p class="card-text mb-1">{{ source.description }}</p>
                         {% endif %}
                         {% if source.humidity is not null %}
                             <p class="card-text mb-1">💧 Humidité : {{ source.humidity }} %</p>

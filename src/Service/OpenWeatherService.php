@@ -46,7 +46,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 wind: $data['wind']['speed'],
                 sourceName: 'OpenWeatherMap',
                 logoUrl: 'https://openweathermap.org/themes/openweathermap/assets/img/logo_white_cropped.png',
-                sourceUrl: 'https://openweathermap.org/current'
+                sourceUrl: 'https://openweathermap.org/current',
+                icon : $this->iconFromCode($data['weather'][0]['icon'])
             );
         } catch (TransportExceptionInterface $e) {
             $this->logger->error('Erreur API OpenWeather Met.no : ' . $e->getMessage());
@@ -58,7 +59,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 wind: 0,
                 sourceName: 'OpenWeatherMap',
                 logoUrl: 'https://openweathermap.org/themes/openweathermap/assets/img/logo_white_cropped.png',
-                sourceUrl: 'https://openweathermap.org/current'
+                sourceUrl: 'https://openweathermap.org/current',
+                icon : null
             );
         }
     }

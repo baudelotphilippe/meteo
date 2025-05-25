@@ -37,7 +37,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         ]);
 
         $data = $response->toArray();
-
+dump($data['current']['condition']['text']);
         return new WeatherData(
             provider: 'WeatherAPI',
             temperature: $data['current']['temp_c'],
@@ -46,7 +46,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             wind: $data['current']['wind_kph'],
             sourceName: 'WeatherAPI',
             logoUrl: 'https://cdn.weatherapi.com/v4/images/weatherapi_logo.png',
-            sourceUrl: 'https://www.weatherapi.com/docs/'
+            sourceUrl: 'https://www.weatherapi.com/docs/',
+            icon : $this->iconFromCondition($data['current']['condition']['text'])
         );
         } catch(TransportExceptionInterface $e) {
             $this->logger->error('Erreur API WeatherAPI Met.no : ' . $e->getMessage());
@@ -58,7 +59,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             wind: 0,
             sourceName: 'WeatherAPI',
             logoUrl: 'https://cdn.weatherapi.com/v4/images/weatherapi_logo.png',
-            sourceUrl: 'https://www.weatherapi.com/docs/'
+            sourceUrl: 'https://www.weatherapi.com/docs/',
+            icon : null
         );
         }
     }
@@ -125,19 +127,25 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         return $result;
     }
 
-    private function iconFromCondition(string $text): string
-    {
-        $t = strtolower($text);
+   private function iconFromCondition(string $text): string
+{
+    $t = mb_strtolower($text); // mieux pour les accents
 
-        return match (true) {
-            str_contains($t, 'orage') => '⛈️',
-            str_contains($t, 'neige') => '❄️',
-            str_contains($t, 'pluie') => '🌧️',
-            str_contains($t, 'nuage'), str_contains($t, 'couvert') => '☁️',
-            str_contains($t, 'bruine') => '🌦️',
-            str_contains($t, 'ensoleillé'), str_contains($t, 'soleil') => '☀️',
-            str_contains($t, 'brouillard') => '🌫️',
-            default => '🌡️',
-        };
-    }
+    return match (true) {
+        str_contains($t, 'orage') => '⛈️',
+        str_contains($t, 'neige'), str_contains($t, 'averses de neige') => '❄️',
+        str_contains($t, 'grêle') => '🧊',
+        str_contains($t, 'pluie'), str_contains($t, 'averses') => '🌧️',
+        str_contains($t, 'bruine') => '🌦️',
+        str_contains($t, 'brouillard'), str_contains($t, 'brume') => '🌫️',
+        str_contains($t, 'ensoleillé'), str_contains($t, 'soleil') => '☀️',
+        str_contains($t, 'partiellement couvert'), str_contains($t, 'partiellement nuageux') => '⛅',
+        str_contains($t, 'couvert'), str_contains($t, 'nuageux') => '☁️',
+        str_contains($t, 'venteux'), str_contains($t, 'rafales') => '💨',
+        str_contains($t, 'gel'), str_contains($t, 'givré') => '🥶',
+        str_contains($t, 'beau temps') => '🌞',
+        default => '🌡️',
+    };
+}
+
 }

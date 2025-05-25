@@ -44,7 +44,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 wind: $data['current_weather']['windspeed'],
                 sourceName: 'Open-Meteo (ECMWF, DWD, NOAA)',
                 logoUrl: 'https://apps.homeycdn.net/app/com.spkes.openMeteo/21/0649a343-6f0b-4a54-9f68-ad818aaab853/drivers/weather/assets/images/large.png',
-                sourceUrl: 'https://open-meteo.com/en/docs'
+                sourceUrl: 'https://open-meteo.com/en/docs',
+                icon: $weatherInfo['icon']
             );
         } catch (TransportExceptionInterface $e) {
             $this->logger->error('Erreur API Weather OpenMeteo : ' . $e->getMessage());
@@ -56,7 +57,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 wind: 0,
                 sourceName: 'Open-Meteo (ECMWF, DWD, NOAA)',
                 logoUrl: 'https://apps.homeycdn.net/app/com.spkes.openMeteo/21/0649a343-6f0b-4a54-9f68-ad818aaab853/drivers/weather/assets/images/large.png',
-                sourceUrl: 'https://open-meteo.com/en/docs'
+                sourceUrl: 'https://open-meteo.com/en/docs',
+                icon: null
             );
         }
     }
