@@ -16,10 +16,10 @@
                         {% if source.description %}
                             <p class="card-text mb-1">{{ source.description }}</p>
                         {% endif %}
-                        {% if source.humidity is not null %}
-                            <p class="card-text mb-1">💧 Humidité : {{ source.humidity }} %</p>
-                        {% endif %}
-                        <p class="card-text mb-0">💨 Vent : {{ source.wind }} km/h</p>
+						<div class="d-flex justify-content-between px-2 small pt-4">
+							<span>Humidité : {{ source.humidity }} %</span>
+							<span>Vent : {{ source.wind }} km/h</span>
+						</div>
                     </div>
                     <div class="card-footer text-center">
                         <a href="{{ source.sourceUrl }}" target="_blank">

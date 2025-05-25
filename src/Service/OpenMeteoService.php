@@ -30,17 +30,20 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                     'latitude' => CityCoordinates::LAT,
                     'longitude' => CityCoordinates::LON,
                     'current_weather' => true,
+                    'hourly' => 'relative_humidity_2m',
                     'timezone' => 'auto'
                 ]
             ])->toArray();
 
             $weatherInfo = $this->getWeatherInfo($data['current_weather']['weathercode']);
+            $target = (new \DateTimeImmutable())->format('Y-m-d\TH:00');
+            $index = array_search($target, $data['hourly']['time']);
 
             return new WeatherData(
                 provider: 'Open-Meteo',
                 temperature: $data['current_weather']['temperature'],
                 description: $weatherInfo['label'],
-                humidity: null,
+                humidity:  $data['hourly']['relative_humidity_2m'][$index],
                 wind: $data['current_weather']['windspeed'],
                 sourceName: 'Open-Meteo (ECMWF, DWD, NOAA)',
                 logoUrl: 'https://apps.homeycdn.net/app/com.spkes.openMeteo/21/0649a343-6f0b-4a54-9f68-ad818aaab853/drivers/weather/assets/images/large.png',

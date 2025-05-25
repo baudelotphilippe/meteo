@@ -37,7 +37,6 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         ]);
 
         $data = $response->toArray();
-dump($data['current']['condition']['text']);
         return new WeatherData(
             provider: 'WeatherAPI',
             temperature: $data['current']['temp_c'],

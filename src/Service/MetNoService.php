@@ -98,6 +98,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
                 $jours[$dayKey][] = $temp;
             }
+dump($jours);
 
             $result = [];
             $i = 0;
