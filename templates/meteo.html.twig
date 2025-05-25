@@ -73,7 +73,7 @@
         </table>
     </div>
 
-    <h2 class="mt-4">Prévisions</h2>
+    <h2 class="mt-4">Prévisions pour les prochains jours</h2>
     <div class="table-responsive">
         <table class="table table-bordered text-center align-middle">
             <thead class="table-light">
@@ -81,7 +81,7 @@
                     <th>Source</th>
 					{% set firstForecasts = forecastRows|first %}
 					{% if firstForecasts is iterable %}
-						{% for i in 0..6 %}
+						{% for i in 1..6 %}
 							<th>{{ firstForecasts[i].date|jour_fr }}</th>
 						{% endfor %}
 					{% else %}
@@ -95,7 +95,7 @@
                     <tr>
                         <th class="text-start">{{ provider }}</th>
                         {% set prev = null %}
-                        {% for forecast in forecasts|slice(0,7) %}
+                        {% for forecast in forecasts|slice(1,7) %}
                             <td>
                                 <div class="fw-bold">{{ forecast.tmin }}–{{ forecast.tmax }}°C</div>
                                 {% if prev is not null %}
