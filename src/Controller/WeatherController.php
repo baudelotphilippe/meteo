@@ -2,16 +2,11 @@
 
 namespace App\Controller;
 
-use DateTime;
-use DateTimeZone;
-use DateTimeImmutable;
 use App\Config\CityCoordinates;
-use App\Service\WeatherAggregator;
-use App\Service\WeatherApiService;
-use App\Service\ForecastAggregator;
-use App\Service\OpenWeatherService;
-use App\Service\HourlyForecastAggregator;
 use App\Service\InfosOfTheDayService;
+use App\Service\HourlyForecast\HourlyForecastAggregator;
+use App\Service\Weather\WeatherAggregator;
+use App\Service\Forecast\ForecastAggregator;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

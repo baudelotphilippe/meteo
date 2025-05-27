@@ -1,5 +1,5 @@
 <?php
-namespace App\Service;
+namespace App\Service\Forecast;
 
 use App\Dto\ForecastData;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Service\HourlyForecast;
 
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 

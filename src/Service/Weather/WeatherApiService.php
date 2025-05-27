@@ -1,13 +1,15 @@
 <?php
 
-namespace App\Service;
+namespace App\Service\Weather;
 
 use App\Dto\WeatherData;
 use App\Dto\ForecastData;
+use Psr\Log\LoggerInterface;
 use App\Config\CityCoordinates;
 use App\Dto\HourlyForecastData;
-use Psr\Log\LoggerInterface;
+use App\Service\Forecast\ForecastProviderInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use App\Service\HourlyForecast\HourlyForecastProviderInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;

@@ -1,4 +1,6 @@
 twig:
+    debug: '%kernel.debug%'
+    strict_variables: '%kernel.debug%'
     file_name_pattern: '*.twig'
     globals:
         locale: 'fr'

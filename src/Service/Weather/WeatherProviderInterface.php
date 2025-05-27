@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Service\Weather;
 
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use App\Dto\WeatherData;

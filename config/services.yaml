@@ -23,24 +23,24 @@ services:
             - '../src/Kernel.php'
 
     # Services avec paramètre API
-    App\Service\OpenWeatherService:
+    App\Service\Weather\OpenWeatherService:
         arguments:
             $apiKey: '%openweather.api_key%'
-    App\Service\WeatherApiService:
+    App\Service\Weather\WeatherApiService:
         arguments:
             $apiKey: '%weatherapi.key%'
 
     # Agrégateur météo : injection des providers
-    App\Service\WeatherAggregator:
+    App\Service\Weather\WeatherAggregator:
         arguments:
             $providers: !tagged_iterator app.weather_provider
 
     # Agrégateur prévision du jour : injection des providers
-    App\Service\HourlyForecastAggregator:
+    App\Service\HourlyForecast\HourlyForecastAggregator:
         arguments:
             $providers: !tagged_iterator app.hourly_forecast
 
     # Agrégateur prévisions : injection des providers
-    App\Service\ForecastAggregator:
+    App\Service\Forecast\ForecastAggregator:
         arguments:
             $providers: !tagged_iterator app.forecast_provider
