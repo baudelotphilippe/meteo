@@ -16,6 +16,7 @@
         "symfony/apache-pack": "^1.0",
         "symfony/asset": "7.2.*",
         "symfony/asset-mapper": "7.2.*",
+        "symfony/cache": "7.2.*",
         "symfony/console": "7.2.*",
         "symfony/doctrine-messenger": "7.2.*",
         "symfony/dotenv": "7.2.*",
