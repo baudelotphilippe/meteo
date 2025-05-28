@@ -44,7 +44,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 provider: 'Open-Meteo',
                 temperature: $data['current_weather']['temperature'],
                 description: $weatherInfo['label'],
-                humidity:  $data['hourly']['relative_humidity_2m'][$index],
+                humidity: $data['hourly']['relative_humidity_2m'][$index],
                 wind: $data['current_weather']['windspeed'],
                 sourceName: 'Open-Meteo (ECMWF, DWD, NOAA)',
                 logoUrl: 'https://apps.homeycdn.net/app/com.spkes.openMeteo/21/0649a343-6f0b-4a54-9f68-ad818aaab853/drivers/weather/assets/images/large.png',
@@ -135,22 +135,46 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
     private function getWeatherInfo(int $code): array
     {
+
         $map = [
             0 => ['icon' => '☀️', 'label' => 'Ciel clair'],
             1 => ['icon' => '🌤️', 'label' => 'Principalement clair'],
             2 => ['icon' => '⛅', 'label' => 'Partiellement nuageux'],
             3 => ['icon' => '☁️', 'label' => 'Couvert'],
-            45, 48 => ['icon' => '🌫️', 'label' => 'Brouillard'],
-            51, 53, 55 => ['icon' => '🌦️', 'label' => 'Bruine'],
-            56, 57 => ['icon' => '🌧️', 'label' => 'Bruine verglaçante'],
-            61, 63, 65 => ['icon' => '🌧️', 'label' => 'Pluie'],
-            66, 67 => ['icon' => '🌧️', 'label' => 'Pluie verglaçante'],
-            71, 73, 75 => ['icon' => '❄️', 'label' => 'Neige'],
+
+            45 => ['icon' => '🌫️', 'label' => 'Brouillard'],
+            48 => ['icon' => '🌫️', 'label' => 'Brouillard'],
+
+            51 => ['icon' => '🌦️', 'label' => 'Bruine'],
+            53 => ['icon' => '🌦️', 'label' => 'Bruine'],
+            55 => ['icon' => '🌦️', 'label' => 'Bruine'],
+
+            56 => ['icon' => '🌧️', 'label' => 'Bruine verglaçante'],
+            57 => ['icon' => '🌧️', 'label' => 'Bruine verglaçante'],
+
+            61 => ['icon' => '🌧️', 'label' => 'Pluie'],
+            63 => ['icon' => '🌧️', 'label' => 'Pluie'],
+            65 => ['icon' => '🌧️', 'label' => 'Pluie'],
+
+            66 => ['icon' => '🌧️', 'label' => 'Pluie verglaçante'],
+            67 => ['icon' => '🌧️', 'label' => 'Pluie verglaçante'],
+
+            71 => ['icon' => '❄️', 'label' => 'Neige'],
+            73 => ['icon' => '❄️', 'label' => 'Neige'],
+            75 => ['icon' => '❄️', 'label' => 'Neige'],
+
             77 => ['icon' => '❄️', 'label' => 'Grains de neige'],
-            80, 81, 82 => ['icon' => '🌦️', 'label' => 'Averses'],
-            85, 86 => ['icon' => '❄️', 'label' => 'Averses de neige'],
+
+            80 => ['icon' => '🌦️', 'label' => 'Averses'],
+            81 => ['icon' => '🌦️', 'label' => 'Averses'],
+            82 => ['icon' => '🌦️', 'label' => 'Averses'],
+
+            85 => ['icon' => '❄️', 'label' => 'Averses de neige'],
+            86 => ['icon' => '❄️', 'label' => 'Averses de neige'],
+
             95 => ['icon' => '⛈️', 'label' => 'Orage'],
-            96, 99 => ['icon' => '⛈️', 'label' => 'Orage avec grêle'],
+            96 => ['icon' => '⛈️', 'label' => 'Orage avec grêle'],
+            99 => ['icon' => '⛈️', 'label' => 'Orage avec grêle'],
         ];
 
         return $map[$code] ?? ['icon' => '🌡️', 'label' => 'Inconnu'];
