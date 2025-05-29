@@ -14,7 +14,7 @@
             <div class="col">
                 <div class="card h-100 d-flex flex-column justify-content-between">
                     <div class="card-body text-center">
-                        <p class="fs-1 fw-bold mb-2">{{ source.temperature }} °C</p>
+                        <p class="fs-1 fw-bold mb-2">{{ source.temperature|round }} °C</p>
 						<span class="weather-icon">{% if source.icon %}{{ source.icon }}{% endif %}</span>
                         {% if source.description %}
                             <p class="card-text mb-1">{{ source.description }}</p>
@@ -62,7 +62,7 @@
                                 {% if found is not same as(false) %}
                                     <div class="weather-cell">
                                         <div class="weather-icon">{{ found.icon }}</div>
-                                        <div class="fw-bold">{{ found.temperature }}°C</div>
+                                        <div class="fw-bold">{{ found.temperature|round }}°C</div>
                                         <div class="text-muted small">{{ found.description }}</div>
                                     </div>
                                 {% else %}
@@ -100,7 +100,7 @@
                         {% set prev = null %}
                         {% for forecast in forecasts|slice(1,7) %}
                             <td>
-                                <div class="fw-bold">{{ forecast.tmin }}–{{ forecast.tmax }}°C</div>
+                                <div class="fw-bold">{{ forecast.tmin|round }}–{{ forecast.tmax|round }}°C</div>
                                 {% if prev is not null %}
                                     {% set diff = forecast.tmax - prev %}
                                     {% if diff > 0.5 %}
