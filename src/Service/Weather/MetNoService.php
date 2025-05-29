@@ -18,7 +18,7 @@ use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 class MetNoService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
     private string $endpoint = 'https://api.met.no/weatherapi/locationforecast/2.0/compact';
-    private array $timeseries = [];
+    private array $hourlyToday = [];
 
 
     public function __construct(private HttpClientInterface $client, private LoggerInterface $logger, private CacheItemPoolInterface $cache) {}
@@ -98,11 +98,11 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 ]);
 
                 $data = $response->toArray();
-                $this->timeseries = $data['properties']['timeseries'];
+                $this->hourlyToday = $data['properties']['timeseries'];
 
                 $jours = [];
 
-                foreach ($this->timeseries as $entry) {
+                foreach ($this->hourlyToday as $entry) {
                     $date = new \DateTimeImmutable($entry['time']);
                     $dayKey = $date->format('Y-m-d');
 
@@ -130,7 +130,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
                     $i++;
                 }
-                $item->set($forecasts);
+                $item->set(["forecast"=>$forecasts, "todayHourly"=>$this->hourlyToday]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
@@ -143,7 +143,10 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $forecasts = [];
             }
         } else {
-            $forecasts = $item->get();
+            
+            $infos = $item->get();
+            $forecasts=$infos["forecast"];
+            $this->hourlyToday=$infos["todayHourly"];
         }
         return $forecasts;
     }
@@ -154,7 +157,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         $today = (new \DateTimeImmutable())->format('Y-m-d');
         $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
 
-        foreach ($this->timeseries as $entry) {
+        foreach ($this->hourlyToday as $entry) {
             $dt = (new \DateTimeImmutable($entry['time']))->setTimezone(new \DateTimeZone('Europe/Paris'));
 
             if ($dt->format('Y-m-d') !== $today) {

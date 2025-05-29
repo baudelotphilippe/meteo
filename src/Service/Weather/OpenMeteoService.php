@@ -112,15 +112,17 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                         description: $info['icon'] . ' ' . $info['label']
                     );
                 }
-                $item->set($forecasts);
-                $item->expiresAfter(1800); // 30 min
+                 $item->set(["forecast"=>$forecasts, "todayHourly"=>$this->hourlyData]);
+                   $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (TransportExceptionInterface | ClientExceptionInterface | ServerExceptionInterface | RedirectionExceptionInterface $e) {
                 $this->logger->error('Erreur API Prévisions OpenMeteo : ' . $e->getMessage());
                 $forecasts = [];
             }
         } else {
-            $forecasts = $item->get();
+            $infos = $item->get();
+            $forecasts=$infos["forecast"];
+            $this->hourlyData=$infos["todayHourly"];
         }
         return $forecasts;
     }

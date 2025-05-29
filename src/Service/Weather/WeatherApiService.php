@@ -109,7 +109,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                     );
                 }
 
-                $item->set($forecasts);
+                                $item->set(["forecast"=>$forecasts, "todayHourly"=>$this->hourlyToday]);
+
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
@@ -122,7 +123,9 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                 return [];
             }
         } else {
-            $forecasts = $item->get();
+            $infos = $item->get();
+            $forecasts=$infos["forecast"];
+            $this->hourlyToday=$infos["todayHourly"];
         }
         return $forecasts;
     }

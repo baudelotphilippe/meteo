@@ -23,7 +23,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     private string $endpointWeather = 'https://api.openweathermap.org/data/2.5/weather';
     private string $endpointForecast = 'https://api.openweathermap.org/data/2.5/forecast';
 
-    private array $forecastData = [];
+    private array $hourlyToday = [];
 
 
     public function __construct(private HttpClientInterface $client, private string $apiKey, private LoggerInterface $logger, private CacheItemPoolInterface $cache) {}
@@ -97,7 +97,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
                 $data = $response->toArray();
                 $grouped = [];
-                $this->forecastData = $data['list'];
+                $this->hourlyToday = $data['list'];
 
                 foreach ($data['list'] as $entry) {
                     $dt = new \DateTimeImmutable($entry['dt_txt']);
@@ -124,7 +124,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                         description: $icon . ' ' . ucfirst($mainDesc)
                     );
                 }
-                $item->set($forecasts);
+                $item->set(["forecast"=>$forecasts, "todayHourly"=>$this->hourlyToday]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
@@ -137,14 +137,16 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 $forecasts = [];
             }
         } else {
-            $forecasts = $item->get();
+            $infos = $item->get();
+            $forecasts=$infos["forecast"];
+            $this->hourlyToday=$infos["todayHourly"];
         }
         return $forecasts;
     }
 
     public function getTodayHourly(): array
     {
-        if (empty($this->forecastData)) {
+        if (empty($this->hourlyToday)) {
             return [];
         }
 
@@ -152,7 +154,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
         $result = [];
 
-        foreach ($this->forecastData as $entry) {
+        foreach ($this->hourlyToday as $entry) {
             $dt = new \DateTimeImmutable($entry['dt_txt']);
             if ($dt->format('Y-m-d') !== $today) {
                 continue;
