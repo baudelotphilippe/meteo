@@ -112,8 +112,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                         description: $info['icon'] . ' ' . $info['label']
                     );
                 }
-                 $item->set(["forecast"=>$forecasts, "todayHourly"=>$this->hourlyData]);
-                   $item->expiresAfter(1800); // 30 min
+                $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyData]);
+                $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (TransportExceptionInterface | ClientExceptionInterface | ServerExceptionInterface | RedirectionExceptionInterface $e) {
                 $this->logger->error('Erreur API Prévisions OpenMeteo : ' . $e->getMessage());
@@ -121,8 +121,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
             }
         } else {
             $infos = $item->get();
-            $forecasts=$infos["forecast"];
-            $this->hourlyData=$infos["todayHourly"];
+            $forecasts = $infos["forecast"];
+            $this->hourlyData = $infos["todayHourly"];
         }
         return $forecasts;
     }
@@ -134,12 +134,12 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         }
 
         $today = (new \DateTimeImmutable())->format('Y-m-d');
-        $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
         $result = [];
 
         foreach ($this->hourlyData['time'] as $i => $iso) {
             $dt = new \DateTimeImmutable($iso);
-            if ($dt->format('Y-m-d') !== $today || !in_array($dt->format('H:i'), $heuresSouhaitees)) {
+
+            if ($dt->format('Y-m-d') !== $today) {
                 continue;
             }
 

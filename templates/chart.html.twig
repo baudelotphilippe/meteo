@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+  <h1 class="text-center my-4">Températures horaires par fournisseur</h1>
+
+  <div class="container">
+    {% for provider, data in chartsData %}
+      <section class="my-5">
+        <h2 class="h5 text-center mb-3">{{ provider }}</h2>
+        <div style="position: relative; width: 100%; max-width: 800px; height: 400px; margin: 0 auto;">
+          <canvas id="chart-{{ loop.index }}"></canvas>
+        </div>
+      </section>
+    {% endfor %}
+  </div>
+
+  <script>
+    const now = new Date();
+    const currentDecimal = now.getHours() + now.getMinutes() / 60;
+
+    {% for provider, data in chartsData %}
+    (function() {
+      const labels = {{ data.labels|json_encode|raw }};
+      const dataPoints = {{ data.temperatures|json_encode|raw }};
+      const hours = labels.map(l => parseInt(l.split('h')[0]));
+
+      let xNow = null;
+      for (let i = 0; i < hours.length - 1; i++) {
+        const h1 = hours[i], h2 = hours[i + 1];
+        if (currentDecimal >= h1 && currentDecimal <= h2) {
+          const ratio = (currentDecimal - h1) / (h2 - h1);
+          xNow = i + ratio;
+          break;
+        }
+      }
+
+      const annotations = xNow !== null ? {
+        nowLine: {
+          type: 'line',
+          xMin: xNow,
+          xMax: xNow,
+          borderColor: 'red',
+          borderWidth: 2,
+        }
+      } : {};
+
+      new Chart(document.getElementById('chart-{{ loop.index }}'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Température (°C)',
+            data: dataPoints,
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { autoSkip: false }
+            },
+            y: {
+              min: 0,
+              max: 40
+            }
+          },
+          plugins: {
+            legend: { display: true },
+            datalabels: {
+              color: '#000',
+              anchor: 'end',
+              align: 'top',
+              font: { weight: 'bold' },
+              formatter: v => v !== null ? v + '°' : ''
+            },
+            annotation: {
+              annotations: annotations
+            }
+          }
+        }
+      });
+    })();
+    {% endfor %}
+  </script>
+{% endblock %}

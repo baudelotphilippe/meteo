@@ -130,7 +130,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
                     $i++;
                 }
-                $item->set(["forecast"=>$forecasts, "todayHourly"=>$this->hourlyToday]);
+                $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyToday]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
@@ -143,19 +143,24 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $forecasts = [];
             }
         } else {
-            
+
             $infos = $item->get();
-            $forecasts=$infos["forecast"];
-            $this->hourlyToday=$infos["todayHourly"];
+            $forecasts = $infos["forecast"];
+            $this->hourlyToday = $infos["todayHourly"];
         }
         return $forecasts;
     }
 
     public function getTodayHourly(): array
     {
-        $result = [];
         $today = (new \DateTimeImmutable())->format('Y-m-d');
-        $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+        $cacheKey = 'metno.hourly.' . $today;
+
+        // Récupère le cache existant
+        $cacheItem = $this->cache->getItem($cacheKey);
+        $stored = $cacheItem->isHit() ? $cacheItem->get() : [];
+
+        $this->logger->info('Avant mise à jour : ' . print_r($stored, true));
 
         foreach ($this->hourlyToday as $entry) {
             $dt = (new \DateTimeImmutable($entry['time']))->setTimezone(new \DateTimeZone('Europe/Paris'));
@@ -164,10 +169,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 continue;
             }
 
-            $heure = $dt->format('H:i');
-            if (!in_array($heure, $heuresSouhaitees)) {
-                continue;
-            }
+            $time = $dt->format('H:i');
 
             $details = $entry['data']['instant']['details'] ?? [];
             if (!isset($details['air_temperature'])) {
@@ -177,17 +179,38 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
             $temp = $details['air_temperature'];
             $symbolCode = $entry['data']['next_1_hours']['summary']['symbol_code'] ?? null;
 
+            $newData = [
+                'temp' => $temp,
+                'desc' => $this->translateSymbol($symbolCode ?? 'inconnu'),
+                'icon' => $symbolCode,
+            ];
+
+                $stored[$time] = $newData;
+        }
+
+        ksort($stored);
+        $this->logger->info('Après mise à jour : ' . print_r($stored, true));
+
+        // Sauvegarde mise à jour
+        $cacheItem->set($stored)->expiresAfter(86400);
+        $this->cache->save($cacheItem);
+
+        // Conversion en objets HourlyForecastData
+        $result = [];
+        foreach ($stored as $time => $data) {
             $result[] = new \App\Dto\HourlyForecastData(
                 provider: 'Met.no',
-                time: $dt->format('H\hi'),
-                temperature: $temp,
-                description: $this->translateSymbol($symbolCode ?? 'inconnu'),
-                icon: $this->iconFromSymbol($symbolCode)
+                time: preg_replace('/^(\d{2}):(\d{2})$/', '$1h$2', $time),
+                temperature: $data['temp'],
+                description: $data['desc'],
+                icon: $this->iconFromSymbol($data['icon']),
             );
         }
 
         return $result;
     }
+
+
     private function iconFromSymbol(?string $code): string
     {
         if (!$code) return '🌡️';

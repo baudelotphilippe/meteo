@@ -124,7 +124,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                         description: $icon . ' ' . ucfirst($mainDesc)
                     );
                 }
-                $item->set(["forecast"=>$forecasts, "todayHourly"=>$this->hourlyToday]);
+                $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyToday]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
@@ -138,20 +138,22 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
             }
         } else {
             $infos = $item->get();
-            $forecasts=$infos["forecast"];
-            $this->hourlyToday=$infos["todayHourly"];
+            $forecasts = $infos["forecast"];
+            $this->hourlyToday = $infos["todayHourly"];
         }
         return $forecasts;
     }
 
     public function getTodayHourly(): array
     {
-        if (empty($this->hourlyToday)) {
-            return [];
-        }
-
         $today = (new \DateTimeImmutable())->format('Y-m-d');
-        $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+        $cacheKey = 'openweather.hourly.' . $today;
+
+        // Récupère le cache existant
+        $cacheItem = $this->cache->getItem($cacheKey);
+
+        $stored = $cacheItem->isHit() ? $cacheItem->get() : [];
+  
         $result = [];
 
         foreach ($this->hourlyToday as $entry) {
@@ -160,24 +162,35 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 continue;
             }
 
-            $heure = $dt->format('H:i');
-            if (!in_array($heure, $heuresSouhaitees)) {
-                continue;
-            }
+            $time = $dt->format('H:i');
+            // ajoute ou écrase
+            $stored[$time] = [
+                'temp' => $entry['main']['temp'],
+                'desc' => $entry['weather'][0]['description'],
+                'icon' => $entry['weather'][0]['icon'],
+            ];
+        }
 
-            $icon = $this->iconFromCode($entry['weather'][0]['icon']);
+        // Tri par heure pour affichage ordonné
+        ksort($stored);
+        // Sauvegarde mise à jour
+        $cacheItem->set($stored)->expiresAfter(86400); // 24h
+        $this->cache->save($cacheItem);
 
+        // Conversion en HourlyForecastData[]
+        foreach ($stored as $time => $data) {
             $result[] = new HourlyForecastData(
                 provider: 'OpenWeather',
-                time: $dt->format('H\hi'),
-                temperature: $entry['main']['temp'],
-                description: $entry['weather'][0]['description'],
-                icon: $icon
+                time: preg_replace('/^(\d{2}):(\d{2})$/', '$1h$2', $time),
+                temperature: $data['temp'],
+                description: $data['desc'],
+                icon: $this->iconFromCode($data['icon'])
             );
         }
 
         return $result;
     }
+
 
 
     private function iconFromCode(string $code): string
