@@ -99,6 +99,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
                 $data = $response->toArray();
                 $this->hourlyData = $data['hourly'];
+                // $this->logger->info(print_r($data['hourly']));
 
                 $forecasts = [];
                 foreach ($data['daily']['time'] as $i => $day) {
@@ -134,24 +135,23 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         }
 
         $today = (new \DateTimeImmutable())->format('Y-m-d');
+        $tomorrow = (new \DateTimeImmutable("+1 day"))->format('Y-m-d');
+
         $result = [];
 
         foreach ($this->hourlyData['time'] as $i => $iso) {
             $dt = new \DateTimeImmutable($iso);
 
-            if ($dt->format('Y-m-d') !== $today) {
-                continue;
+            if (($dt->format('Y-m-d') === $today) || (($dt->format('Y-m-d') === $tomorrow) && ($dt->format('H:i') === "00:00"))) {
+                $info = $this->getWeatherInfo($this->hourlyData['weathercode'][$i]);
+                $result[] = new HourlyForecastData(
+                    provider: 'Open-Meteo',
+                    time: $dt->format('G\h'),
+                    temperature: $this->hourlyData['temperature_2m'][$i],
+                    description: $info['label'],
+                    icon: $info['icon']
+                );
             }
-
-            $info = $this->getWeatherInfo($this->hourlyData['weathercode'][$i]);
-
-            $result[] = new HourlyForecastData(
-                provider: 'Open-Meteo',
-                time: $dt->format('H\hi'),
-                temperature: $this->hourlyData['temperature_2m'][$i],
-                description: $info['label'],
-                icon: $info['icon']
-            );
         }
 
         return $result;

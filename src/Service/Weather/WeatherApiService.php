@@ -96,7 +96,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                 ]);
 
                 $data = $response->toArray();
-                $this->hourlyToday = $data['forecast']['forecastday'][0]['hour'];
+                $this->hourlyToday = $data['forecast']['forecastday'];
 
                 $forecasts = [];
                 foreach ($data['forecast']['forecastday'] as $day) {
@@ -109,7 +109,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                     );
                 }
 
-                                $item->set(["forecast"=>$forecasts, "todayHourly"=>$this->hourlyToday]);
+                $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyToday]);
 
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
@@ -124,31 +124,42 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             }
         } else {
             $infos = $item->get();
-            $forecasts=$infos["forecast"];
-            $this->hourlyToday=$infos["todayHourly"];
+            $forecasts = $infos["forecast"];
+            $this->hourlyToday = $infos["todayHourly"];
         }
         return $forecasts;
     }
 
 
+
     public function getTodayHourly(): array
     {
-        $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00',  '18:00', '21:00'];
+        if (empty($this->hourlyToday)) {
+            return [];
+        }
 
         $result = [];
 
-        foreach ($this->hourlyToday as $hour) {
-            $heure = (new \DateTimeImmutable($hour['time']))->format('H:i');
-            if (in_array($heure, $heuresSouhaitees)) {
-                $result[] = new HourlyForecastData(
-                    provider: 'WeatherAPI',
-                    time: (new \DateTimeImmutable($hour['time']))->format('H\hi'),
-                    temperature: $hour['temp_c'],
-                    description: $hour['condition']['text'],
-                    icon: $this->iconFromCondition($hour['condition']['text'])
-                );
-            }
+        // loop for today
+        foreach ($this->hourlyToday[0]['hour'] as $hour) {
+            $result[] = new HourlyForecastData(
+                provider: 'WeatherAPI',
+                time: (new \DateTimeImmutable($hour['time']))->format('G\h'),
+                temperature: $hour['temp_c'],
+                description: $hour['condition']['text'],
+                icon: $this->iconFromCondition($hour['condition']['text'])
+            );
         }
+        // add tomorrow
+        $tomorrow = $this->hourlyToday[1]['hour'][0];
+        $result[] = new HourlyForecastData(
+            provider: 'WeatherAPI',
+            time: (new \DateTimeImmutable($tomorrow['time']))->format('G\h'),
+            temperature: $tomorrow['temp_c'],
+            description: $tomorrow['condition']['text'],
+            icon: $this->iconFromCondition($tomorrow['condition']['text'])
+        );
+
 
         return $result;
     }

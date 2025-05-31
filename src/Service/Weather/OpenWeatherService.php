@@ -98,7 +98,6 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 $data = $response->toArray();
                 $grouped = [];
                 $this->hourlyToday = $data['list'];
-
                 foreach ($data['list'] as $entry) {
                     $dt = new \DateTimeImmutable($entry['dt_txt']);
                     $dayKey = $dt->format('Y-m-d');
@@ -147,28 +146,31 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     public function getTodayHourly(): array
     {
         $today = (new \DateTimeImmutable())->format('Y-m-d');
+        $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
         $cacheKey = 'openweather.hourly.' . $today;
 
         // Récupère le cache existant
         $cacheItem = $this->cache->getItem($cacheKey);
 
         $stored = $cacheItem->isHit() ? $cacheItem->get() : [];
-  
+
         $result = [];
 
         foreach ($this->hourlyToday as $entry) {
             $dt = new \DateTimeImmutable($entry['dt_txt']);
-            if ($dt->format('Y-m-d') !== $today) {
-                continue;
-            }
-
+            $date = $dt->format('Y-m-d');
             $time = $dt->format('H:i');
-            // ajoute ou écrase
-            $stored[$time] = [
-                'temp' => $entry['main']['temp'],
-                'desc' => $entry['weather'][0]['description'],
-                'icon' => $entry['weather'][0]['icon'],
-            ];
+            if ($date === $today || ($date === $tomorrow && $time === '00:00')) {
+                // Pour gérer le doublon 00:00, on modifie la clé pour celle du lendemain
+                $time = ($date === $tomorrow && $time === '00:00') ? '24:00' : $time;
+
+                // ajoute ou écrase
+                $stored[$time] = [
+                    'temp' => $entry['main']['temp'],
+                    'desc' => $entry['weather'][0]['description'],
+                    'icon' => $entry['weather'][0]['icon'],
+                ];
+            }
         }
 
         // Tri par heure pour affichage ordonné
@@ -179,9 +181,15 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
         // Conversion en HourlyForecastData[]
         foreach ($stored as $time => $data) {
+            if ($time === '24:00') {
+                $displayTime = '0h';
+            } else {
+                $hour = ltrim(explode(':', $time)[0], '0');
+                $displayTime = $hour . 'h';
+            }
             $result[] = new HourlyForecastData(
                 provider: 'OpenWeather',
-                time: preg_replace('/^(\d{2}):(\d{2})$/', '$1h$2', $time),
+                time: $displayTime,
                 temperature: $data['temp'],
                 description: $data['desc'],
                 icon: $this->iconFromCode($data['icon'])
