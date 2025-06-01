@@ -159,10 +159,9 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         foreach ($this->hourlyToday as $entry) {
             $dt = new \DateTimeImmutable($entry['dt_txt']);
             $date = $dt->format('Y-m-d');
-            $time = $dt->format('H:i');
-            if ($date === $today || ($date === $tomorrow && $time === '00:00')) {
-                // Pour gérer le doublon 00:00, on modifie la clé pour celle du lendemain
-                $time = ($date === $tomorrow && $time === '00:00') ? '24:00' : $time;
+            $time = $dt->format('G\h');
+            if ($date === $today || ($date === $tomorrow && $time === '0h')) {
+                $time = ($date === $tomorrow) ? '24h' : $time;
 
                 // ajoute ou écrase
                 $stored[$time] = [
@@ -181,15 +180,9 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
         // Conversion en HourlyForecastData[]
         foreach ($stored as $time => $data) {
-            if ($time === '24:00') {
-                $displayTime = '0h';
-            } else {
-                $hour = ltrim(explode(':', $time)[0], '0');
-                $displayTime = $hour . 'h';
-            }
             $result[] = new HourlyForecastData(
                 provider: 'OpenWeather',
-                time: $displayTime,
+                time: $time,
                 temperature: $data['temp'],
                 description: $data['desc'],
                 icon: $this->iconFromCode($data['icon'])

@@ -154,7 +154,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         $tomorrow = $this->hourlyToday[1]['hour'][0];
         $result[] = new HourlyForecastData(
             provider: 'WeatherAPI',
-            time: (new \DateTimeImmutable($tomorrow['time']))->format('G\h'),
+            time: '24h',
             temperature: $tomorrow['temp_c'],
             description: $tomorrow['condition']['text'],
             icon: $this->iconFromCondition($tomorrow['condition']['text'])

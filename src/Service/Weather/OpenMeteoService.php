@@ -141,12 +141,15 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
         foreach ($this->hourlyData['time'] as $i => $iso) {
             $dt = new \DateTimeImmutable($iso);
+            $date = $dt->format('Y-m-d');
+            $time = $dt->format('G\h');
 
-            if (($dt->format('Y-m-d') === $today) || (($dt->format('Y-m-d') === $tomorrow) && ($dt->format('H:i') === "00:00"))) {
+            if (($date === $today) || (($date === $tomorrow) && ($time === "0h"))) {
+                $time = ($date=== $tomorrow) ? '24h' : $time;
                 $info = $this->getWeatherInfo($this->hourlyData['weathercode'][$i]);
                 $result[] = new HourlyForecastData(
                     provider: 'Open-Meteo',
-                    time: $dt->format('G\h'),
+                    time: $time,
                     temperature: $this->hourlyData['temperature_2m'][$i],
                     description: $info['label'],
                     icon: $info['icon']

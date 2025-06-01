@@ -86,7 +86,7 @@ class WeatherController extends AbstractController
             ];
         }
 
-        dump($chartsData['Open-Meteo']);
+        dump($chartsData['OpenWeather']);
         return $this->render('chart.html.twig', [
             'chartsData' => $chartsData,
         ]);

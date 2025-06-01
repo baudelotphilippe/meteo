@@ -165,10 +165,10 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         foreach ($this->hourlyToday as $entry) {
             $dt = (new \DateTimeImmutable($entry['time']))->setTimezone(new \DateTimeZone('Europe/Paris'));
             $date = $dt->format('Y-m-d');
-            $time = $dt->format('H:i');
+            $time = $dt->format('G\h');
 
-            if ($date === $today || ($date === $tomorrow && $time === '00:00')) {
-                $key = ($date === $tomorrow && $time === '00:00') ? '24:00' : $time;
+            if ($date === $today || ($date === $tomorrow && $time === '0h')) {
+                $time = ($date === $tomorrow && $time === '0h') ? '24h' : $time;
                 $details = $entry['data']['instant']['details'] ?? [];
                 if (!isset($details['air_temperature'])) {
                     continue;
@@ -182,7 +182,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                     'icon' => $symbolCode,
                 ];
 
-                $stored[$key] = $newData;
+                $stored[$time] = $newData;
             }
         }
 
@@ -195,15 +195,9 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         // Conversion en objets HourlyForecastData
         $result = [];
         foreach ($stored as $time => $data) {
-            if ($time === '24:00') {
-                $displayTime = '0h';
-            } else {
-                $hour = ltrim(explode(':', $time)[0], '0');
-                $displayTime = $hour . 'h';
-            }
             $result[] = new \App\Dto\HourlyForecastData(
                 provider: 'Met.no',
-                time: $displayTime,
+                time: $time,
                 temperature: $data['temp'],
                 description: $data['desc'],
                 icon: $this->iconFromSymbol($data['icon']),
