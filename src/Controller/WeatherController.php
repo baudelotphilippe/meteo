@@ -28,35 +28,15 @@ class WeatherController extends AbstractController
             $forecastRows[$provider][] = $forecast;
         }
 
-        // $apiKey = 'IaHAXHJcS0h2znhK5Wr405dMmaMkHA82';
-        // $stationId = 'FR09403';
-        // $date = date('Y-m-d'); // Date du jour
+        $chartsData = [];
+        foreach ($hourly_forecast_aggregator->getAll() as $provider => $hourlyData) {
+            $chartsData[$provider] = [
+                'labels' => array_map(fn($h) => $h->time, $hourlyData),
+                'temperatures' => array_map(fn($h) => $h->temperature, $hourlyData),
+            ];
+        }
 
-        // $response = $client->request('GET', 'https://www.geodair.fr/api-ext/MoyJ/export', [
-        //     'query' => [
-        //         'date' => $date,
-        //         'polluant' => '24',
-        //     ],
-        //     'headers' => [
-        //         'apikey' => $apiKey,
-        //     ],
-        // ]);
-
-        // $downloadId = $response->getContent();
-
-        // if ($downloadId) {
-        //     $response = $client->request('GET', "https://www.geodair.fr/api-ext/download", [
-        //         'query' => ['id' => $downloadId],
-        //         'headers' => [
-        //             'apikey' => $apiKey,
-        //         ],
-        //     ]);
-
-        //     file_put_contents('donnees_pollution.csv', $response->getContent());
-        // }
-
-
-        return $this->render('meteo.html.twig', ['ville' => CityCoordinates::CITY, 'infosDay' => $infos_of_the_day_service->getInfosOfTheDay(), 'sources' => $weather_aggregator->getAll(), 'forecastRows' => $forecastRows, 'todayHourly' => $hourly_forecast_aggregator->getAll()]);
+        return $this->render('meteo.html.twig', ['ville' => CityCoordinates::CITY, 'infosDay' => $infos_of_the_day_service->getInfosOfTheDay(), 'sources' => $weather_aggregator->getAll(), 'forecastRows' => $forecastRows, 'todayHourly' => $chartsData]);
     }
 
     #[Route('/clear-cache', name: "clear-cache")]
@@ -66,29 +46,29 @@ class WeatherController extends AbstractController
         return new Response("ok");
     }
 
-    #[Route('/chart', name: 'chart')]
-    public function index(ForecastAggregator $forecast_aggregator, HourlyForecastAggregator $hourlyAggregator): Response
-    {
-        $forecastRows = [];
+    // #[Route('/chart', name: 'chart')]
+    // public function index(ForecastAggregator $forecast_aggregator, HourlyForecastAggregator $hourlyAggregator): Response
+    // {
+    //     $forecastRows = [];
 
-        foreach ($forecast_aggregator->getAll() as $forecast) {
-            $provider = $forecast->provider;
-            $forecastRows[$provider][] = $forecast;
-        }
-        $allHourlyData = $hourlyAggregator->getAll(); // tableau ['Fournisseur' => [HourlyForecastData,...], ...]
+    //     foreach ($forecast_aggregator->getAll() as $forecast) {
+    //         $provider = $forecast->provider;
+    //         $forecastRows[$provider][] = $forecast;
+    //     }
+    //     $allHourlyData = $hourlyAggregator->getAll(); // tableau ['Fournisseur' => [HourlyForecastData,...], ...]
 
-        $chartsData = [];
+    //     $chartsData = [];
 
-        foreach ($allHourlyData as $provider => $hourlyData) {
-            $chartsData[$provider] = [
-                'labels' => array_map(fn($h) => $h->time, $hourlyData),
-                'temperatures' => array_map(fn($h) => $h->temperature, $hourlyData),
-            ];
-        }
+    //     foreach ($allHourlyData as $provider => $hourlyData) {
+    //         $chartsData[$provider] = [
+    //             'labels' => array_map(fn($h) => $h->time, $hourlyData),
+    //             'temperatures' => array_map(fn($h) => $h->temperature, $hourlyData),
+    //         ];
+    //     }
 
-        dump($chartsData['OpenWeather']);
-        return $this->render('chart.html.twig', [
-            'chartsData' => $chartsData,
-        ]);
-    }
+    //     dump($chartsData['OpenWeather']);
+    //     return $this->render('chart.html.twig', [
+    //         'chartsData' => $chartsData,
+    //     ]);
+    // }
 }

@@ -1,126 +1,240 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Météo{% endblock %}
+{% block title %}Météo
+{% endblock %}
 
 {% block body %}
-<section class="container my-4">
-    <h1 class="mb-4">Météo à {{ ville }}</h1>
-    <h2>{{ infosDay.date }}</h2>
+	<section class="container my-4">
+		<h1 class="mb-4">Météo à
+			{{ ville }}</h1>
+		<h2>{{ infosDay.date }}</h2>
 
-    <p class="text-center">levé {{infosDay.ephemeride.sunrise}} - couché {{infosDay.ephemeride.sunset}}</p>
-    
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
-        {% for source in sources %}
-            <div class="col">
-                <div class="card h-100 d-flex flex-column justify-content-between">
-                    <div class="card-body text-center">
-                        <p class="fs-1 fw-bold mb-2">{{ source.temperature|round }} °C</p>
-						<span class="weather-icon">{% if source.icon %}{{ source.icon }}{% endif %}</span>
-                        {% if source.description %}
-                            <p class="card-text mb-1">{{ source.description }}</p>
-                        {% endif %}
-						<div class="d-flex justify-content-between px-2 small pt-4">
-							<span>Humidité : {{ source.humidity }} %</span>
-							<span>Vent : {{ source.wind }} km/h</span>
+		<p class="text-center">levé
+			{{infosDay.ephemeride.sunrise}}
+			- couché
+			{{infosDay.ephemeride.sunset}}</p>
+
+		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
+			{% for source in sources %}
+				<div class="col">
+					<div class="card h-100 d-flex flex-column justify-content-between">
+						<div class="card-body text-center">
+							<p class="fs-1 fw-bold mb-2">{{ source.temperature|round }}
+								°C</p>
+							<span class="weather-icon">
+								{% if source.icon %}
+									{{ source.icon }}
+								{% endif %}
+							</span>
+							{% if source.description %}
+								<p class="card-text mb-1">{{ source.description }}</p>
+							{% endif %}
+							<div class="d-flex justify-content-between px-2 small pt-4">
+								<span>Humidité :
+									{{ source.humidity }}
+									%</span>
+								<span>Vent :
+									{{ source.wind }}
+									km/h</span>
+							</div>
 						</div>
-                    </div>
-                    <div class="card-footer text-center">
-                        <a href="{{ source.sourceUrl }}" target="_blank">
-                            <img src="{{ source.logoUrl }}" alt="{{ source.sourceName }}" style="max-height: 30px;"><span class="ms-3 card-title">{{ source.provider }}</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        {% endfor %}
-    </div>
+						<div class="card-footer text-center">
+							<a href="{{ source.sourceUrl }}" target="_blank">
+								<img src="{{ source.logoUrl }}" alt="{{ source.sourceName }}" style="max-height: 30px;"><span class="ms-3 card-title">{{ source.provider }}</span>
+							</a>
+						</div>
+					</div>
+				</div>
+			{% endfor %}
+		</div>
 
-    <h2>Prévisions pour aujourd'hui</h2>
-    <div class="table-responsive">
-        <table class="table table-bordered text-center align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Source</th>
-                    {% set allTimes = ['06h00','09h00','12h00','15h00','18h00','21h00'] %}
-                    {% for time in allTimes %}
-                        {% set hour = time|slice(0,2) + 0 %}
-                        {% set nowHour = "now"|date("H") + 0 %}
-                        <th class="{{ hour < nowHour ? 'past-hour' }}">
-                            {{ time }}
-                        </th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for provider, forecasts in todayHourly %}
-                    <tr>
-                        <th class="text-start">{{ provider }}</th>
-                        {% for time in allTimes %}
-                            {% set found = forecasts|filter(f => f.time == time)|first %}
-                            {% set hour = time|slice(0,2) + 0 %}
-                            {% set nowHour = "now"|date("H") + 0 %}
-                            <td class="{{ hour < nowHour ? 'past-hour' }}">
-                                {% if found is not same as(false) %}
-                                    <div class="weather-cell">
-                                        <div class="weather-icon">{{ found.icon }}</div>
-                                        <div class="fw-bold">{{ found.temperature|round }}°C</div>
-                                        <div class="text-muted small">{{ found.description }}</div>
-                                    </div>
-                                {% else %}
-                                    <div style="opacity: 0.3;">—</div>
-                                {% endif %}
-                            </td>
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+		<h2>Prévisions pour aujourd'hui</h2>
+		<div class="container text-center mb-4">
+			{% set providers = todayHourly|keys %}
+			{% set colors = {
+  'Met.no': { border: '#F28B82', background: 'rgba(242, 139, 130, 0.4)' },
+  'Open-Meteo': { border: '#A7C7E7', background: 'rgba(167, 199, 231, 0.4)' },
+  'OpenWeather': { border: '#FFD180', background: 'rgba(255, 209, 128, 0.4)' },
+  'WeatherAPI': { border: '#C5E1A5', background: 'rgba(197, 225, 165, 0.4)' },
+} %}
 
-    <h2 class="mt-4">Prévisions pour les prochains jours</h2>
-    <div class="table-responsive">
-        <table class="table table-bordered text-center align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Source</th>
-					{% set firstForecasts = forecastRows|first %}
-					{% if firstForecasts is iterable %}
-						{% for i in 1..6 %}
-							<th>{{ firstForecasts[i].date|jour_fr }}</th>
-						{% endfor %}
-					{% else %}
-						<th colspan="7" class="text-muted">Pas de prévisions disponibles</th>
-					{% endif %}
 
-                </tr>
-            </thead>
-            <tbody>
-                {% for provider, forecasts in forecastRows %}
-                    <tr>
-                        <th class="text-start">{{ provider }}</th>
-                        {% set prev = null %}
-                        {% for forecast in forecasts|slice(1,7) %}
-                            <td>
-                                <div class="fw-bold">{{ forecast.tmin|round }}–{{ forecast.tmax|round }}°C</div>
-                                {% if prev is not null %}
-                                    {% set diff = forecast.tmax - prev %}
-                                    {% if diff > 0.5 %}
-                                        <span class="text-danger">🔺</span>
-                                    {% elseif diff < -0.5 %}
-                                        <span class="text-primary">🔻</span>
-                                    {% else %}
-                                        <span class="text-primary">=</span>
-                                    {% endif %}
-                                {% endif %}
-                                {% if forecast.description %}
-                                    <div class="text-muted small">{{ forecast.description }}</div>
-                                {% endif %}
-                            </td>
-                            {% set prev = forecast.tmax %}
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
+{% for provider in providers %}
+  <button
+    type="button"
+    data-source="{{ loop.index0 }}"
+    class="toggle-dataset btn mx-1 active"
+    style="background-color: {{ colors[provider].border }}; border-color: {{ colors[provider].border }};"
+  >
+    {{ provider }}
+  </button>
+{% endfor %}
+
+		</div>
+
+		<div style="position: relative; width: 100%; max-width: 800px; height: 400px; margin: 0 auto;">
+			<canvas id="combined-chart"></canvas>
+		</div>
+
+		 <script>
+		    const allLabels = [];
+		    for(let h = 0; h <= 24; h++) {
+		      allLabels.push(h + 'h');
+		    }
+			
+				    // Fonction pour aligner les données d’un dataset sur allLabels
+				    function alignData(labelsSource, dataSource, allLabels) {
+				      return allLabels.map(label => {
+				        const idx = labelsSource.indexOf(label);
+				        return idx !== -1 ? dataSource[idx] : null;
+				      });
+				    }
+				
+				    // Construire datasets alignés sur allLabels
+				    const datasets = [
+				      {% for provider in providers %}
+				      {
+				        label: '{{ provider }}',
+				        data: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].temperatures|json_encode|raw }}, allLabels),
+			        borderColor: '{{colors[provider].border}}',
+			        backgroundColor: '{{colors[provider].background}}',
+					 icons: ["☁️", "☁️", "🌧️", "🌧️", "🌦️", "🌤️", "☀️", "☀️", "☀️", "🌤️", "🌦️", "🌧️", "🌧️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️"],
+		
+				        fill: false,
+				        tension: 0.3,
+				        pointRadius: 4,
+				        spanGaps: true, 
+				        hidden: false,
+				      }{% if not loop.last %},{% endif %}
+				      {% endfor %}
+				    ];
+				
+				    const ctx = document.getElementById('combined-chart').getContext('2d');
+				
+				    const annotationPlugin = window['chartjs-plugin-annotation'];
+				    Chart.register(annotationPlugin);
+				const iconPlugin = {
+					id: 'weatherIcons',
+					afterDatasetsDraw(chart) {
+						chart.data.datasets.forEach((dataset, datasetIndex) => {
+							
+							const meta = chart.getDatasetMeta(datasetIndex);
+							if (!dataset.icons || meta.hidden) return; 
+						meta.data.forEach((point, i) => {
+							const icon = dataset.icons[i];
+							if (icon && point && !isNaN(dataset.data[i])) {
+							chart.ctx.save();
+							chart.ctx.font = '16px sans-serif';
+							chart.ctx.textAlign = 'center';
+							chart.ctx.fillText(icon, point.x, point.y - 20);
+							chart.ctx.restore();
+							}
+						});
+						});
+					}
+					};
+					
+				    const now = new Date();
+				    const currentDecimal = now.getHours() + now.getMinutes() / 60;
+				
+				    let xNow = null;
+				    const hours = allLabels.map(l => parseInt(l.split('h')[0]));
+				    for (let i = 0; i < hours.length - 1; i++) {
+				      const h1 = hours[i], h2 = hours[i+1];
+				      if (currentDecimal >= h1 && currentDecimal <= h2) {
+				        const ratio = (currentDecimal - h1) / (h2 - h1);
+				        xNow = i + ratio;
+				        break;
+				      }
+				    }
+				    const annotations = xNow !== null ? {
+				      nowLine: {
+				        type: 'line',
+				        xMin: xNow,
+				        xMax: xNow,
+				        borderColor: 'red',
+				        borderWidth: 2,
+				      }
+				    } : {};
+				
+				    const chart = new Chart(ctx, {
+				      type: 'line',
+				      data: {
+				        labels: allLabels,
+				        datasets: datasets,
+				      },
+				      options: {
+				        responsive: true,
+				        maintainAspectRatio: false,
+				        scales: {
+				          x: { ticks: { autoSkip: false } },
+				          y: { min: 0, max: 40 }
+				        },
+				        plugins: {
+				          legend: { display: false },
+				          annotation: { annotations: annotations }
+				        }
+				      },
+  plugins: [annotationPlugin, iconPlugin]
+				    });
+				
+				    // Boutons toggle pour afficher/cacher datasets
+				    document.querySelectorAll('.toggle-dataset').forEach(button => {
+				      button.addEventListener('click', () => {
+				        const idx = parseInt(button.getAttribute('data-source'), 10);
+				        const meta = chart.getDatasetMeta(idx);
+				        meta.hidden = !meta.hidden;
+				        chart.update();
+				        button.classList.toggle('active');
+				      });
+				    });
+				  </script>
+
+		<h2 class="mt-4">Prévisions pour les prochains jours</h2>
+		<div class="table-responsive">
+			<table class="table table-bordered text-center align-middle">
+				<thead class="table-light">
+					<tr>
+						<th>Source</th>
+						{% set firstForecasts = forecastRows|first %}
+						{% if firstForecasts is iterable %}
+							{% for i in 1..6 %}
+								<th>{{ firstForecasts[i].date|jour_fr }}</th>
+							{% endfor %}
+						{% else %}
+							<th colspan="7" class="text-muted">Pas de prévisions disponibles</th>
+						{% endif %}
+
+					</tr>
+				</thead>
+				<tbody>
+					{% for provider, forecasts in forecastRows %}
+						<tr>
+							<th class="text-start">{{ provider }}</th>
+							{% set prev = null %}
+							{% for forecast in forecasts|slice(1,7) %}
+								<td>
+									<div class="fw-bold">{{ forecast.tmin|round }}–{{ forecast.tmax|round }}°C</div>
+									{% if prev is not null %}
+										{% set diff = forecast.tmax - prev %}
+										{% if diff > 0.5 %}
+											<span class="text-danger">🔺</span>
+										{% elseif diff < -0.5 %}
+											<span class="text-primary">🔻</span>
+										{% else %}
+											<span class="text-primary">=</span>
+										{% endif %}
+									{% endif %}
+									{% if forecast.description %}
+										<div class="text-muted small">{{ forecast.description }}</div>
+									{% endif %}
+								</td>
+								{% set prev = forecast.tmax %}
+							{% endfor %}
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</section>
 {% endblock %}
