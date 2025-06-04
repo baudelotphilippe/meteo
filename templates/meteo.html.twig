@@ -34,7 +34,7 @@
 									{{ source.humidity }}
 									%</span>
 								<span>Vent :
-									{{ source.wind }}
+									{{ source.wind|round }}
 									km/h</span>
 							</div>
 						</div>
@@ -59,136 +59,132 @@
 } %}
 
 
-{% for provider in providers %}
-  <button
-    type="button"
-    data-source="{{ loop.index0 }}"
-    class="toggle-dataset btn mx-1 active"
-    style="background-color: {{ colors[provider].border }}; border-color: {{ colors[provider].border }};"
-  >
-    {{ provider }}
-  </button>
-{% endfor %}
+			{% for provider in providers %}
+				<button type="button" data-source="{{ loop.index0 }}" class="toggle-dataset btn mx-1 active" style="background-color: {{ colors[provider].border }}; border-color: {{ colors[provider].border }};">
+					{{ provider }}
+				</button>
+			{% endfor %}
 
 		</div>
 
-		<div style="position: relative; width: 100%; max-width: 800px; height: 400px; margin: 0 auto;">
+		<div style="position: relative; width: 100%;  height: 400px; margin: 0 auto;">
 			<canvas id="combined-chart"></canvas>
 		</div>
 
 		 <script>
-		    const allLabels = [];
-		    for(let h = 0; h <= 24; h++) {
-		      allLabels.push(h + 'h');
-		    }
-			
-				    // Fonction pour aligner les données d’un dataset sur allLabels
-				    function alignData(labelsSource, dataSource, allLabels) {
-				      return allLabels.map(label => {
-				        const idx = labelsSource.indexOf(label);
-				        return idx !== -1 ? dataSource[idx] : null;
-				      });
+				    const allLabels = [];
+				    for(let h = 0; h <= 24; h++) {
+				      allLabels.push(h + 'h');
 				    }
-				
-				    // Construire datasets alignés sur allLabels
-				    const datasets = [
-				      {% for provider in providers %}
-				      {
-				        label: '{{ provider }}',
-				        data: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].temperatures|json_encode|raw }}, allLabels),
-			        borderColor: '{{colors[provider].border}}',
-			        backgroundColor: '{{colors[provider].background}}',
-					 icons: ["☁️", "☁️", "🌧️", "🌧️", "🌦️", "🌤️", "☀️", "☀️", "☀️", "🌤️", "🌦️", "🌧️", "🌧️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️", "☁️"],
-		
-				        fill: false,
-				        tension: 0.3,
-				        pointRadius: 4,
-				        spanGaps: true, 
-				        hidden: false,
-				      }{% if not loop.last %},{% endif %}
-				      {% endfor %}
-				    ];
-				
-				    const ctx = document.getElementById('combined-chart').getContext('2d');
-				
-				    const annotationPlugin = window['chartjs-plugin-annotation'];
-				    Chart.register(annotationPlugin);
-				const iconPlugin = {
-					id: 'weatherIcons',
-					afterDatasetsDraw(chart) {
-						chart.data.datasets.forEach((dataset, datasetIndex) => {
-							
-							const meta = chart.getDatasetMeta(datasetIndex);
-							if (!dataset.icons || meta.hidden) return; 
-						meta.data.forEach((point, i) => {
-							const icon = dataset.icons[i];
-							if (icon && point && !isNaN(dataset.data[i])) {
-							chart.ctx.save();
-							chart.ctx.font = '16px sans-serif';
-							chart.ctx.textAlign = 'center';
-							chart.ctx.fillText(icon, point.x, point.y - 20);
-							chart.ctx.restore();
-							}
-						});
-						});
-					}
-					};
 					
-				    const now = new Date();
-				    const currentDecimal = now.getHours() + now.getMinutes() / 60;
+						    // Fonction pour aligner les données d’un dataset sur allLabels
+						    function alignData(labelsSource, dataSource, allLabels) {
+						      return allLabels.map(label => {
+						        const idx = labelsSource.indexOf(label);
+						        return idx !== -1 ? dataSource[idx] : null;
+						      });
+						    }
+						
+						    // Construire datasets alignés sur allLabels
+						    const datasets = [
+						      {% for provider in providers %}
+						      {
+						        label: '{{ provider }}',
+						        data: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].temperatures|json_encode|raw }}, allLabels),
+					        borderColor: '{{colors[provider].border}}',
+					        backgroundColor: '{{colors[provider].background}}',
+							icons: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].icons|json_encode|raw }}, allLabels),
+
 				
-				    let xNow = null;
-				    const hours = allLabels.map(l => parseInt(l.split('h')[0]));
-				    for (let i = 0; i < hours.length - 1; i++) {
-				      const h1 = hours[i], h2 = hours[i+1];
-				      if (currentDecimal >= h1 && currentDecimal <= h2) {
-				        const ratio = (currentDecimal - h1) / (h2 - h1);
-				        xNow = i + ratio;
-				        break;
-				      }
-				    }
-				    const annotations = xNow !== null ? {
-				      nowLine: {
-				        type: 'line',
-				        xMin: xNow,
-				        xMax: xNow,
-				        borderColor: 'red',
-				        borderWidth: 2,
-				      }
-				    } : {};
-				
-				    const chart = new Chart(ctx, {
-				      type: 'line',
-				      data: {
-				        labels: allLabels,
-				        datasets: datasets,
-				      },
-				      options: {
-				        responsive: true,
-				        maintainAspectRatio: false,
-				        scales: {
-				          x: { ticks: { autoSkip: false } },
-				          y: { min: 0, max: 40 }
-				        },
-				        plugins: {
-				          legend: { display: false },
-				          annotation: { annotations: annotations }
-				        }
-				      },
-  plugins: [annotationPlugin, iconPlugin]
-				    });
-				
-				    // Boutons toggle pour afficher/cacher datasets
-				    document.querySelectorAll('.toggle-dataset').forEach(button => {
-				      button.addEventListener('click', () => {
-				        const idx = parseInt(button.getAttribute('data-source'), 10);
-				        const meta = chart.getDatasetMeta(idx);
-				        meta.hidden = !meta.hidden;
-				        chart.update();
-				        button.classList.toggle('active');
-				      });
-				    });
-				  </script>
+						        fill: false,
+						        tension: 0.3,
+						        pointRadius: 4,
+						        spanGaps: true, 
+						        hidden: false,
+						      }{% if not loop.last %},{% endif %}
+						      {% endfor %}
+						    ];
+						
+						    const ctx = document.getElementById('combined-chart').getContext('2d');
+						
+						    const annotationPlugin = window['chartjs-plugin-annotation'];
+						    Chart.register(annotationPlugin);
+						const iconPlugin = {
+							id: 'weatherIcons',
+							afterDatasetsDraw(chart) {
+								chart.data.datasets.forEach((dataset, datasetIndex) => {
+									
+									const meta = chart.getDatasetMeta(datasetIndex);
+									if (!dataset.icons || meta.hidden) return; 
+								meta.data.forEach((point, i) => {
+									const icon = dataset.icons[i];
+									if (icon && point && !isNaN(dataset.data[i])) {
+									chart.ctx.save();
+									chart.ctx.font = '16px sans-serif';
+									chart.ctx.textAlign = 'center';
+									chart.ctx.fillText(icon, point.x, point.y - 20);
+									chart.ctx.restore();
+									}
+								});
+								});
+							}
+							};
+							
+						    const now = new Date();
+						    const currentDecimal = now.getHours() + now.getMinutes() / 60;
+						
+						    let xNow = null;
+						    const hours = allLabels.map(l => parseInt(l.split('h')[0]));
+						    for (let i = 0; i < hours.length - 1; i++) {
+						      const h1 = hours[i], h2 = hours[i+1];
+						      if (currentDecimal >= h1 && currentDecimal <= h2) {
+						        const ratio = (currentDecimal - h1) / (h2 - h1);
+						        xNow = i + ratio;
+						        break;
+						      }
+						    }
+						    const annotations = xNow !== null ? {
+						      nowLine: {
+						        type: 'line',
+						        xMin: xNow,
+						        xMax: xNow,
+						        borderColor: 'red',
+						        borderWidth: 2,
+						      }
+						    } : {};
+						
+						    const chart = new Chart(ctx, {
+						      type: 'line',
+						      data: {
+						        labels: allLabels,
+						        datasets: datasets,
+						      },
+						      options: {
+						        responsive: true,
+						        maintainAspectRatio: false,
+						        scales: {
+						          x: { ticks: { autoSkip: false } },
+						          y: { min: 0, max: 40 }
+						        },
+						        plugins: {
+						          legend: { display: false },
+						          annotation: { annotations: annotations }
+						        }
+						      },
+		  					plugins: [annotationPlugin, iconPlugin]
+						    });
+						
+						    // Boutons toggle pour afficher/cacher datasets
+						    document.querySelectorAll('.toggle-dataset').forEach(button => {
+						      button.addEventListener('click', () => {
+						        const idx = parseInt(button.getAttribute('data-source'), 10);
+						        const meta = chart.getDatasetMeta(idx);
+						        meta.hidden = !meta.hidden;
+						        chart.update();
+						        button.classList.toggle('active');
+						      });
+						    });
+						  </script>
 
 		<h2 class="mt-4">Prévisions pour les prochains jours</h2>
 		<div class="table-responsive">
@@ -198,7 +194,7 @@
 						<th>Source</th>
 						{% set firstForecasts = forecastRows|first %}
 						{% if firstForecasts is iterable %}
-							{% for i in 1..6 %}
+							{% for i in 0..6 %}
 								<th>{{ firstForecasts[i].date|jour_fr }}</th>
 							{% endfor %}
 						{% else %}
@@ -214,20 +210,16 @@
 							{% set prev = null %}
 							{% for forecast in forecasts|slice(1,7) %}
 								<td>
-									<div class="fw-bold">{{ forecast.tmin|round }}–{{ forecast.tmax|round }}°C</div>
-									{% if prev is not null %}
-										{% set diff = forecast.tmax - prev %}
-										{% if diff > 0.5 %}
-											<span class="text-danger">🔺</span>
-										{% elseif diff < -0.5 %}
-											<span class="text-primary">🔻</span>
-										{% else %}
-											<span class="text-primary">=</span>
-										{% endif %}
-									{% endif %}
 									{% if forecast.description %}
-										<div class="text-muted small">{{ forecast.description }}</div>
+										<div class="weather-icon_xl">{{ forecast.description }}</div>
 									{% endif %}
+									<div class="d-flex flex-column">
+									<span class="text-danger fs-2">{{ forecast.tmax|round }}°</span>
+									<span class="fs-2">-</span>
+									<span class="text-info fs-2">{{ forecast.tmin|round }}°</span>
+
+									</div>
+
 								</td>
 								{% set prev = forecast.tmax %}
 							{% endfor %}

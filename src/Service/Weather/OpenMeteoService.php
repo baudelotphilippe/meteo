@@ -110,7 +110,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                         date: new \DateTimeImmutable($day),
                         tmin: $data['daily']['temperature_2m_min'][$i],
                         tmax: $data['daily']['temperature_2m_max'][$i],
-                        description: $info['icon'] . ' ' . $info['label']
+                        description: $info['icon']
                     );
                 }
                 $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyData]);

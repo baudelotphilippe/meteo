@@ -66,6 +66,10 @@ h1, h2 {
     font-size: 1.6rem;
     margin-bottom: 0.25rem;
 }
+.weather-icon_xl {
+    font-size: 1.6rem;
+    margin-bottom: 0.25rem;
+}
 
 .text-muted.small {
     font-size: 0.8rem;
@@ -74,4 +78,8 @@ h1, h2 {
 .past-hour {
     background-color: #f1f3f5;
     opacity: 0.5;
+}
+
+.toggle-dataset:not(.active) {
+    opacity: 0.4;
 }

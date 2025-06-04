@@ -105,7 +105,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                         date: new \DateTimeImmutable($day['date']),
                         tmin: $day['day']['mintemp_c'],
                         tmax: $day['day']['maxtemp_c'],
-                        description: $this->iconFromCondition($day['day']['condition']['text']) . ' ' . ucfirst($day['day']['condition']['text'])
+                        description: $this->iconFromCondition($day['day']['condition']['text'])
                     );
                 }
 

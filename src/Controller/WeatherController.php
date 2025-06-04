@@ -33,6 +33,7 @@ class WeatherController extends AbstractController
             $chartsData[$provider] = [
                 'labels' => array_map(fn($h) => $h->time, $hourlyData),
                 'temperatures' => array_map(fn($h) => $h->temperature, $hourlyData),
+                'icons' => array_map(fn($h) => $h->icon, $hourlyData),
             ];
         }
 

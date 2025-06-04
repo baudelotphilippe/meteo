@@ -120,7 +120,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                         date: new \DateTimeImmutable($day),
                         tmin: min($temps),
                         tmax: max($temps),
-                        description: $icon . ' ' . ucfirst($mainDesc)
+                        description: $icon
                     );
                 }
                 $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyToday]);
