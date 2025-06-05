@@ -110,7 +110,9 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                         date: new \DateTimeImmutable($day),
                         tmin: $data['daily']['temperature_2m_min'][$i],
                         tmax: $data['daily']['temperature_2m_max'][$i],
-                        description: $info['icon']
+                        icon: $info['icon'],
+                        emoji: $info['emoji'],
+
                     );
                 }
                 $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyData]);
@@ -145,14 +147,15 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
             $time = $dt->format('G\h');
 
             if (($date === $today) || (($date === $tomorrow) && ($time === "0h"))) {
-                $time = ($date=== $tomorrow) ? '24h' : $time;
+                $time = ($date === $tomorrow) ? '24h' : $time;
                 $info = $this->getWeatherInfo($this->hourlyData['weathercode'][$i]);
                 $result[] = new HourlyForecastData(
                     provider: 'Open-Meteo',
                     time: $time,
                     temperature: $this->hourlyData['temperature_2m'][$i],
                     description: $info['label'],
-                    icon: $info['icon']
+                    emoji: $info['emoji'],
+
                 );
             }
         }
@@ -162,48 +165,47 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
     private function getWeatherInfo(int $code): array
     {
-
         $map = [
-            0 => ['icon' => '☀️', 'label' => 'Ciel clair'],
-            1 => ['icon' => '🌤️', 'label' => 'Principalement clair'],
-            2 => ['icon' => '⛅', 'label' => 'Partiellement nuageux'],
-            3 => ['icon' => '☁️', 'label' => 'Couvert'],
+            0 => ['emoji' => '☀️', 'label' => 'Ciel clair', 'icon' => 'wi wi-day-sunny'],
+            1 => ['emoji' => '🌤️', 'label' => 'Principalement clair', 'icon' => 'wi wi-day-sunny-overcast'],
+            2 => ['emoji' => '⛅', 'label' => 'Partiellement nuageux', 'icon' => 'wi wi-day-cloudy'],
+            3 => ['emoji' => '☁️', 'label' => 'Couvert', 'icon' => 'wi wi-cloudy'],
 
-            45 => ['icon' => '🌫️', 'label' => 'Brouillard'],
-            48 => ['icon' => '🌫️', 'label' => 'Brouillard'],
+            45 => ['emoji' => '🌫️', 'label' => 'Brouillard', 'icon' => 'wi wi-fog'],
+            48 => ['emoji' => '🌫️', 'label' => 'Brouillard', 'icon' => 'wi wi-fog'],
 
-            51 => ['icon' => '🌦️', 'label' => 'Bruine'],
-            53 => ['icon' => '🌦️', 'label' => 'Bruine'],
-            55 => ['icon' => '🌦️', 'label' => 'Bruine'],
+            51 => ['emoji' => '🌦️', 'label' => 'Bruine', 'icon' => 'wi wi-showers'],
+            53 => ['emoji' => '🌦️', 'label' => 'Bruine', 'icon' => 'wi wi-showers'],
+            55 => ['emoji' => '🌦️', 'label' => 'Bruine', 'icon' => 'wi wi-showers'],
 
-            56 => ['icon' => '🌧️', 'label' => 'Bruine verglaçante'],
-            57 => ['icon' => '🌧️', 'label' => 'Bruine verglaçante'],
+            56 => ['emoji' => '🌧️', 'label' => 'Bruine verglaçante', 'icon' => 'wi wi-rain-mix'],
+            57 => ['emoji' => '🌧️', 'label' => 'Bruine verglaçante', 'icon' => 'wi wi-rain-mix'],
 
-            61 => ['icon' => '🌧️', 'label' => 'Pluie'],
-            63 => ['icon' => '🌧️', 'label' => 'Pluie'],
-            65 => ['icon' => '🌧️', 'label' => 'Pluie'],
+            61 => ['emoji' => '🌧️', 'label' => 'Pluie', 'icon' => 'wi wi-rain'],
+            63 => ['emoji' => '🌧️', 'label' => 'Pluie', 'icon' => 'wi wi-rain'],
+            65 => ['emoji' => '🌧️', 'label' => 'Pluie', 'icon' => 'wi wi-rain'],
 
-            66 => ['icon' => '🌧️', 'label' => 'Pluie verglaçante'],
-            67 => ['icon' => '🌧️', 'label' => 'Pluie verglaçante'],
+            66 => ['emoji' => '🌧️', 'label' => 'Pluie verglaçante', 'icon' => 'wi wi-rain-mix'],
+            67 => ['emoji' => '🌧️', 'label' => 'Pluie verglaçante', 'icon' => 'wi wi-rain-mix'],
 
-            71 => ['icon' => '❄️', 'label' => 'Neige'],
-            73 => ['icon' => '❄️', 'label' => 'Neige'],
-            75 => ['icon' => '❄️', 'label' => 'Neige'],
+            71 => ['emoji' => '❄️', 'label' => 'Neige', 'icon' => 'wi wi-snow'],
+            73 => ['emoji' => '❄️', 'label' => 'Neige', 'icon' => 'wi wi-snow'],
+            75 => ['emoji' => '❄️', 'label' => 'Neige', 'icon' => 'wi wi-snow'],
 
-            77 => ['icon' => '❄️', 'label' => 'Grains de neige'],
+            77 => ['emoji' => '❄️', 'label' => 'Grains de neige', 'icon' => 'wi wi-snow-wind'],
 
-            80 => ['icon' => '🌦️', 'label' => 'Averses'],
-            81 => ['icon' => '🌦️', 'label' => 'Averses'],
-            82 => ['icon' => '🌦️', 'label' => 'Averses'],
+            80 => ['emoji' => '🌦️', 'label' => 'Averses', 'icon' => 'wi wi-showers'],
+            81 => ['emoji' => '🌦️', 'label' => 'Averses', 'icon' => 'wi wi-showers'],
+            82 => ['emoji' => '🌦️', 'label' => 'Averses', 'icon' => 'wi wi-showers'],
 
-            85 => ['icon' => '❄️', 'label' => 'Averses de neige'],
-            86 => ['icon' => '❄️', 'label' => 'Averses de neige'],
+            85 => ['emoji' => '❄️', 'label' => 'Averses de neige', 'icon' => 'wi wi-snow'],
+            86 => ['emoji' => '❄️', 'label' => 'Averses de neige', 'icon' => 'wi wi-snow'],
 
-            95 => ['icon' => '⛈️', 'label' => 'Orage'],
-            96 => ['icon' => '⛈️', 'label' => 'Orage avec grêle'],
-            99 => ['icon' => '⛈️', 'label' => 'Orage avec grêle'],
+            95 => ['emoji' => '⛈️', 'label' => 'Orage', 'icon' => 'wi wi-thunderstorm'],
+            96 => ['emoji' => '⛈️', 'label' => 'Orage avec grêle', 'icon' => 'wi wi-thunderstorm'],
+            99 => ['emoji' => '⛈️', 'label' => 'Orage avec grêle', 'icon' => 'wi wi-thunderstorm'],
         ];
 
-        return $map[$code] ?? ['icon' => '🌡️', 'label' => 'Inconnu'];
+        return $map[$code] ?? ['emoji' => '🌡️', 'label' => 'Inconnu', 'icon' => 'wi wi-na'];
     }
 }

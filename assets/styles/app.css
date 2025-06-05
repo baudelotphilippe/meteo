@@ -85,12 +85,12 @@ h1, h2 {
 
 .forecast-temps .tmax {
   color: #d9534f;
-  font-weight: bold;
+  /* font-weight: bold; */
 }
 
 .forecast-temps .tmin {
   color: #0275d8;
-  font-weight: bold;
+  /* font-weight: bold; */
 }
 
 #filter-bar {
@@ -140,4 +140,20 @@ h1, h2 {
 
 .fs-0 {
   font-size: 4rem;
+}
+
+.source-met-no {
+    color: rgba(242, 139, 130, 0.5); /* rouge */
+}
+
+.source-open-meteo {
+    color: rgba(167, 199, 231, 0.5); /* bleu */
+}
+
+.source-openweather {
+    color: rgba(255, 209, 128, 0.5); /* orange */
+}
+
+.source-weatherapi {
+    color: rgba(197, 225, 165, 0.5); /* vert */
 }

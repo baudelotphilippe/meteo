@@ -8,6 +8,6 @@ class HourlyForecastData
         public string $time,       // format "HHhmm"
         public float $temperature,
         public string $description,
-        public string $icon
+        public string $emoji
     ) {}
 }

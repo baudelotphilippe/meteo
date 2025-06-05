@@ -53,7 +53,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                     sourceName: 'OpenWeatherMap',
                     logoUrl: 'https://openweathermap.org/themes/openweathermap/assets/img/logo_white_cropped.png',
                     sourceUrl: 'https://openweathermap.org/current',
-                    icon: $this->iconFromCode($data['weather'][0]['icon'])
+                    icon: $this->iconFromCode($data['weather'][0]['icon'])['icon']
                 );
                 $item->set($weather);
                 $item->expiresAfter(600); // 10 minutes
@@ -113,14 +113,15 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                     $mainDesc = array_key_first($descFreq);
 
                     $iconCode = $entries[0]['weather'][0]['icon'];
-                    $icon = $this->iconFromCode($iconCode); // facultatif
+                    $icon = $this->iconFromCode($iconCode); 
 
                     $forecasts[] = new ForecastData(
                         provider: 'OpenWeather',
                         date: new \DateTimeImmutable($day),
                         tmin: min($temps),
                         tmax: max($temps),
-                        description: $icon
+                        icon: $icon['icon'],
+                        emoji:$icon['emoji']
                     );
                 }
                 $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyToday]);
@@ -185,7 +186,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 time: $time,
                 temperature: $data['temp'],
                 description: $data['desc'],
-                icon: $this->iconFromCode($data['icon'])
+                emoji: $this->iconFromCode($data['icon'])['emoji']
             );
         }
 
@@ -194,17 +195,18 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
 
 
-    private function iconFromCode(string $code): string
-    {
-        return match (substr($code, 0, 2)) {
-            '01' => '☀️',
-            '02' => '🌤️',
-            '03', '04' => '☁️',
-            '09', '10' => '🌧️',
-            '11' => '⛈️',
-            '13' => '❄️',
-            '50' => '🌫️',
-            default => '🌡️',
-        };
-    }
+  private function iconFromCode(string $code): array
+{
+    return match (substr($code, 0, 2)) {
+        '01' => ['emoji' => '☀️', 'icon' => 'wi wi-day-sunny'],
+        '02' => ['emoji' => '🌤️', 'icon' => 'wi wi-day-sunny-overcast'],
+        '03', '04' => ['emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
+        '09', '10' => ['emoji' => '🌧️', 'icon' => 'wi wi-rain'],
+        '11' => ['emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
+        '13' => ['emoji' => '❄️', 'icon' => 'wi wi-snow'],
+        '50' => ['emoji' => '🌫️', 'icon' => 'wi wi-fog'],
+        default => ['emoji' => '🌡️', 'icon' => 'wi wi-na'],
+    };
+}
+
 }

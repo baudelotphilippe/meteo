@@ -38,10 +38,7 @@
 						<div class="card-body text-center">
 							<div class="row">
 								<div class="col-6">
-									<span class="weather-icon">
-										{% if source.icon %}
-											{{ source.icon }}
-										{% endif %}
+									<span class="weather-icon"><i class="{{ source.icon }} source-{{ source.provider|lower|replace({'.': '-', ' ': '-'}) }}"></i>
 									</span>
 								</div>
 								<div class="col-6 d-flex flex-column justify-content-between">
@@ -66,8 +63,8 @@
 									{% for forecast in forecastRows[provider]|slice(1,7) %}
 										<div class="forecast-cell">
 											<div class="forecast-date">{{ forecast.date|jour_fr }}</div>
-											{% if forecast.description %}
-												<div class="forecast-icon">{{ forecast.description }}</div>
+											{% if forecast.icon %}
+												<div class="forecast-icon"><i class="{{ forecast.icon }}"></i></div>
 											{% endif %}
 											<div class="forecast-temps">
 												<span class="tmin">{{ forecast.tmin|round }}°</span>
@@ -131,7 +128,6 @@
 
     if (!xScale || !ctx || !labels || labels.length === 0) return;
 
-    // Index fractionnel : ex 14.37 => entre label[14] et label[15]
     const x0 = xScale.getPixelForValue(labels[Math.floor(hour)]);
     const x1 = xScale.getPixelForValue(labels[Math.ceil(hour)]);
     const ratio = hour - Math.floor(hour);
@@ -165,7 +161,7 @@
 				              tension: 0.3,
 				              pointRadius: 4,
 				              spanGaps: true,
-				              icons: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].icons|json_encode|raw }})
+				              icons: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].emoji|json_encode|raw }})
 				            }]
 				          },
 				          options: {

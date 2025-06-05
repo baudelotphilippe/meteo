@@ -33,7 +33,7 @@ class WeatherController extends AbstractController
             $chartsData[$provider] = [
                 'labels' => array_map(fn($h) => $h->time, $hourlyData),
                 'temperatures' => array_map(fn($h) => $h->temperature, $hourlyData),
-                'icons' => array_map(fn($h) => $h->icon, $hourlyData),
+                'emoji' => array_map(fn($h) => $h->emoji, $hourlyData),
             ];
         }
 
@@ -47,29 +47,4 @@ class WeatherController extends AbstractController
         return new Response("ok");
     }
 
-    // #[Route('/chart', name: 'chart')]
-    // public function index(ForecastAggregator $forecast_aggregator, HourlyForecastAggregator $hourlyAggregator): Response
-    // {
-    //     $forecastRows = [];
-
-    //     foreach ($forecast_aggregator->getAll() as $forecast) {
-    //         $provider = $forecast->provider;
-    //         $forecastRows[$provider][] = $forecast;
-    //     }
-    //     $allHourlyData = $hourlyAggregator->getAll(); // tableau ['Fournisseur' => [HourlyForecastData,...], ...]
-
-    //     $chartsData = [];
-
-    //     foreach ($allHourlyData as $provider => $hourlyData) {
-    //         $chartsData[$provider] = [
-    //             'labels' => array_map(fn($h) => $h->time, $hourlyData),
-    //             'temperatures' => array_map(fn($h) => $h->temperature, $hourlyData),
-    //         ];
-    //     }
-
-    //     dump($chartsData['OpenWeather']);
-    //     return $this->render('chart.html.twig', [
-    //         'chartsData' => $chartsData,
-    //     ]);
-    // }
 }

@@ -9,6 +9,8 @@ class ForecastData
         public \DateTimeImmutable $date,
         public float $tmin,
         public float $tmax,
-        public ?string $description = null
+        public string $icon,
+        public string $emoji
+
     ) {}
 }
