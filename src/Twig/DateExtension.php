@@ -22,7 +22,7 @@ class DateExtension extends AbstractExtension
             \IntlDateFormatter::NONE,
             'Europe/Paris',
             \IntlDateFormatter::GREGORIAN,
-            'EEEE d MMM'
+            'EEEE'
         );
 
         return ucfirst($formatter->format($date));

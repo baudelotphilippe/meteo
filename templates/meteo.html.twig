@@ -1,126 +1,226 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Météo{% endblock %}
+{% block title %}Météo
+{% endblock %}
 
 {% block body %}
-<section class="container my-4">
-    <h1 class="mb-4">Météo à {{ ville }}</h1>
-    <h2>{{ infosDay.date }}</h2>
+	<section class="container my-4">
+		<h1 class="mb-1">Météo à
+			{{ ville }}</h1>
+		<h2 class="mb-3">{{ infosDay.date }}</h2>
+		<p class="text-center mb-4 text-muted">Lever
+			{{ infosDay.ephemeride.sunrise }}
+			— Coucher
+			{{ infosDay.ephemeride.sunset }}</p>
 
-    <p class="text-center">levé {{infosDay.ephemeride.sunrise}} - couché {{infosDay.ephemeride.sunset}}</p>
-    
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
-        {% for source in sources %}
-            <div class="col">
-                <div class="card h-100 d-flex flex-column justify-content-between">
-                    <div class="card-body text-center">
-                        <p class="fs-1 fw-bold mb-2">{{ source.temperature|round }} °C</p>
-						<span class="weather-icon">{% if source.icon %}{{ source.icon }}{% endif %}</span>
-                        {% if source.description %}
-                            <p class="card-text mb-1">{{ source.description }}</p>
-                        {% endif %}
-						<div class="d-flex justify-content-between px-2 small pt-4">
-							<span>Humidité : {{ source.humidity }} %</span>
-							<span>Vent : {{ source.wind }} km/h</span>
+		{% set colors = {
+    'Met.no': { border: '#F28B82', background: 'rgba(242, 139, 130, 0.1)' },
+    'Open-Meteo': { border: '#A7C7E7', background: 'rgba(167, 199, 231, 0.1)' },
+    'OpenWeather': { border: '#FFD180', background: 'rgba(255, 209, 128, 0.1)' },
+    'WeatherAPI': { border: '#C5E1A5', background: 'rgba(197, 225, 165, 0.1)' },
+  } %}
+
+		<div class="text-center my-4" id="filter-bar">
+			<button class="filter-btn active" data-target="all">Tous</button>
+			{% for source in sources %}
+				{% set provider = source.provider %}
+				<button class="filter-btn" data-target="provider-{{ loop.index }}" style="--color: {{ colors[provider].border }}">
+					{{ provider }}
+				</button>
+			{% endfor %}
+		</div>
+
+		<div class="row justify-content-center" id="cards-container">
+			{% for source in sources %}
+				{% set provider = source.provider %}
+				<div class="col-12 col-md-6 provider-card mt-3 provider-{{ loop.index }}">
+					<div class="card h-100 d-flex flex-column justify-content-between my-4">
+						<div class="card-body text-center">
+							<div class="row">
+								<div class="col-6">
+									<span class="weather-icon"><i class="{{ source.icon }} source-{{ source.provider|lower|replace({'.': '-', ' ': '-'}) }}"></i>
+									</span>
+								</div>
+								<div class="col-6 d-flex flex-column justify-content-between">
+									<p class="fs-0 fw-bold mb-2">{{ source.temperature|round }}°</p>
+									<div>
+										<p class="small">Humidité :
+											{{ source.humidity }}%</p>
+										<p class="small">Vent :
+											{{ source.wind|round }}km/h</p>
+									</div>
+								</div>
+							</div>
+
+							{% if todayHourly[provider] is defined %}
+								<div class="mt-3" style="height: 300px; position: relative;">
+									<canvas id="chart-{{ loop.index }}" class="weather-chart"></canvas>
+								</div>
+							{% endif %}
+
+							{% if forecastRows[provider] is defined %}
+								<div class="forecast-row mt-4">
+									{% for forecast in forecastRows[provider]|slice(1,7) %}
+										<div class="forecast-cell">
+											<div class="forecast-date">{{ forecast.date|jour_fr }}</div>
+											{% if forecast.icon %}
+												<div class="forecast-icon"><i class="{{ forecast.icon }}"></i></div>
+											{% endif %}
+											<div class="forecast-temps">
+												<span class="tmin">{{ forecast.tmin|round }}°</span>
+												<span class="tmax">{{ forecast.tmax|round }}°</span>
+											</div>
+										</div>
+									{% endfor %}
+								</div>
+							{% endif %}
 						</div>
-                    </div>
-                    <div class="card-footer text-center">
-                        <a href="{{ source.sourceUrl }}" target="_blank">
-                            <img src="{{ source.logoUrl }}" alt="{{ source.sourceName }}" style="max-height: 30px;"><span class="ms-3 card-title">{{ source.provider }}</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        {% endfor %}
-    </div>
 
-    <h2>Prévisions pour aujourd'hui</h2>
-    <div class="table-responsive">
-        <table class="table table-bordered text-center align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Source</th>
-                    {% set allTimes = ['06h00','09h00','12h00','15h00','18h00','21h00'] %}
-                    {% for time in allTimes %}
-                        {% set hour = time|slice(0,2) + 0 %}
-                        {% set nowHour = "now"|date("H") + 0 %}
-                        <th class="{{ hour < nowHour ? 'past-hour' }}">
-                            {{ time }}
-                        </th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for provider, forecasts in todayHourly %}
-                    <tr>
-                        <th class="text-start">{{ provider }}</th>
-                        {% for time in allTimes %}
-                            {% set found = forecasts|filter(f => f.time == time)|first %}
-                            {% set hour = time|slice(0,2) + 0 %}
-                            {% set nowHour = "now"|date("H") + 0 %}
-                            <td class="{{ hour < nowHour ? 'past-hour' }}">
-                                {% if found is not same as(false) %}
-                                    <div class="weather-cell">
-                                        <div class="weather-icon">{{ found.icon }}</div>
-                                        <div class="fw-bold">{{ found.temperature|round }}°C</div>
-                                        <div class="text-muted small">{{ found.description }}</div>
-                                    </div>
-                                {% else %}
-                                    <div style="opacity: 0.3;">—</div>
-                                {% endif %}
-                            </td>
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+						<div class="card-footer text-center">
+							<a href="{{ source.sourceUrl }}" target="_blank">
+								<img src="{{ source.logoUrl }}" alt="{{ source.sourceName }}" style="max-height: 30px;"><span class="ms-3 card-title">{{ source.provider }}</span>
+							</a>
+						</div>
+					</div>
+				</div>
+			{% endfor %}
+		</div>
 
-    <h2 class="mt-4">Prévisions pour les prochains jours</h2>
-    <div class="table-responsive">
-        <table class="table table-bordered text-center align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Source</th>
-					{% set firstForecasts = forecastRows|first %}
-					{% if firstForecasts is iterable %}
-						{% for i in 1..6 %}
-							<th>{{ firstForecasts[i].date|jour_fr }}</th>
-						{% endfor %}
-					{% else %}
-						<th colspan="7" class="text-muted">Pas de prévisions disponibles</th>
-					{% endif %}
 
-                </tr>
-            </thead>
-            <tbody>
-                {% for provider, forecasts in forecastRows %}
-                    <tr>
-                        <th class="text-start">{{ provider }}</th>
-                        {% set prev = null %}
-                        {% for forecast in forecasts|slice(1,7) %}
-                            <td>
-                                <div class="fw-bold">{{ forecast.tmin|round }}–{{ forecast.tmax|round }}°C</div>
-                                {% if prev is not null %}
-                                    {% set diff = forecast.tmax - prev %}
-                                    {% if diff > 0.5 %}
-                                        <span class="text-danger">🔺</span>
-                                    {% elseif diff < -0.5 %}
-                                        <span class="text-primary">🔻</span>
-                                    {% else %}
-                                        <span class="text-primary">=</span>
-                                    {% endif %}
-                                {% endif %}
-                                {% if forecast.description %}
-                                    <div class="text-muted small">{{ forecast.description }}</div>
-                                {% endif %}
-                            </td>
-                            {% set prev = forecast.tmax %}
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
+		 <script>
+				    const allLabels = [];
+				    for (let h = 0; h <= 24; h++) allLabels.push(h + 'h');
+				
+				    function alignData(labelsSource, dataSource) {
+				      return allLabels.map(label => {
+				        const idx = labelsSource.indexOf(label);
+				        return idx !== -1 ? dataSource[idx] : null;
+				      });
+				    }
+				
+				    const iconPlugin = {
+				      id: 'weatherIcons',
+				      afterDatasetsDraw(chart) {
+				        chart.data.datasets.forEach((dataset, datasetIndex) => {
+				          const meta = chart.getDatasetMeta(datasetIndex);
+				          if (!dataset.icons || meta.hidden) return;
+				          meta.data.forEach((point, i) => {
+				            const icon = dataset.icons[i];
+				            if (icon && point && !isNaN(dataset.data[i])) {
+				              chart.ctx.save();
+				              chart.ctx.font = '16px sans-serif';
+				              chart.ctx.textAlign = 'center';
+				              chart.ctx.fillText(icon, point.x, point.y - 20);
+				              chart.ctx.restore();
+				            }
+				          });
+				        });
+				      }
+				    };
+				const hourNowPlugin = {
+  id: 'hourNow',
+  beforeDraw(chart) {
+    const now = new Date();
+    const hour = now.getHours() + now.getMinutes() / 60;
+    const xScale = chart.scales.x;
+    const ctx = chart.ctx;
+    const labels = chart.data.labels;
+
+    if (!xScale || !ctx || !labels || labels.length === 0) return;
+
+    const x0 = xScale.getPixelForValue(labels[Math.floor(hour)]);
+    const x1 = xScale.getPixelForValue(labels[Math.ceil(hour)]);
+    const ratio = hour - Math.floor(hour);
+    const x = x0 + (x1 - x0) * ratio;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, chart.chartArea.top);
+    ctx.lineTo(x, chart.chartArea.bottom);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#ff0000';
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
+		
+				    {% for source in sources %}
+				      {% set provider = source.provider %}
+				      {% if todayHourly[provider] is defined %}
+				        new Chart(document.getElementById('chart-{{ loop.index }}'), {
+				          type: 'line',
+				          data: {
+				            labels: allLabels,
+				            datasets: [{
+				              label: '{{ provider }}',
+				              data: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].temperatures|json_encode|raw }}),
+				              borderColor: '{{ colors[provider].border }}',
+				              backgroundColor: '{{ colors[provider].background }}',
+				              fill: false,
+				              tension: 0.3,
+				              pointRadius: 4,
+				              spanGaps: true,
+				              icons: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].emoji|json_encode|raw }})
+				            }]
+				          },
+				          options: {
+				            responsive: true,
+				            maintainAspectRatio: false,
+				scales: {
+				  x: {
+				    ticks: { autoSkip: false }
+				  },
+				  y: {
+				    position: 'left',
+				    min: 0,
+				    max: 30,
+				  },
+				  yRight: {
+				    position: 'right',
+				    min: 0,
+				    max: 30,
+				    grid: { drawOnChartArea: false }, // empêche double quadrillage
+				  }
+				},
+		
+				
+				            plugins: {
+				              legend: { display: false }
+				            }
+				          },
+				          plugins: [iconPlugin, hourNowPlugin]
+				        });
+				      {% endif %}
+				    {% endfor %}
+				
+				    const buttons = document.querySelectorAll('.filter-btn');
+		const cards = document.querySelectorAll('.provider-card');
+		
+		document.querySelector('.filter-btn[data-target="all"]').addEventListener('click', () => {
+		  cards.forEach(card => card.style.display = 'block');
+		  buttons.forEach(btn => btn.classList.remove('active'));
+		  document.querySelector('.filter-btn[data-target="all"]').classList.add('active');
+		});
+		
+		buttons.forEach(button => {
+		  if (button.dataset.target === 'all') return;
+		
+		  button.addEventListener('click', () => {
+		    button.classList.toggle('active');
+		    document.querySelector('.filter-btn[data-target="all"]').classList.remove('active');
+		
+		    const activeTargets = Array.from(buttons)
+		      .filter(btn => btn.classList.contains('active') && btn.dataset.target !== 'all')
+		      .map(btn => btn.dataset.target);
+		
+		    cards.forEach(card => {
+		      const matches = activeTargets.some(target => card.classList.contains(target));
+		      card.style.display = matches || activeTargets.length === 0 ? 'block' : 'none';
+		    });
+		  });
+		});
+		
+				  </script>
+	</section>
 {% endblock %}

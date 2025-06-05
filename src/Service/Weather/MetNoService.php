@@ -45,17 +45,18 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
                 $details = $first['data']['instant']['details'];
                 $symbolCode = $first['data']['next_1_hours']['summary']['symbol_code'] ?? null;
+                $displayMeteo = $this->getSymbolMeta($symbolCode);
 
                 $weather = new WeatherData(
                     provider: 'Met.no',
                     temperature: $details['air_temperature'],
-                    description: $this->translateSymbol($symbolCode ?? 'inconnu'),
+                    description: $displayMeteo['label'],
                     humidity: $details['relative_humidity'] ?? null,
                     wind: $details['wind_speed'] ?? 0,
                     sourceName: 'MET Norway (Yr.no)',
                     logoUrl: 'https://www.met.no/_/asset/no.met.metno:00000196349af260/images/met-logo.svg',
                     sourceUrl: 'https://api.met.no/weatherapi/locationforecast/2.0/documentation',
-                    icon: $this->iconFromSymbol($symbolCode)
+                    icon: $displayMeteo['icon']
                 );
                 $item->set($weather);
                 $item->expiresAfter(600); // 10 minutes
@@ -111,26 +112,41 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                     }
 
                     $temp = $entry['data']['instant']['details']['air_temperature'];
+                    $symbolCode =
+                        $entry['data']['next_1_hours']['summary']['symbol_code']
+                        ?? $entry['data']['next_6_hours']['summary']['symbol_code']
+                        ?? $entry['data']['next_12_hours']['summary']['symbol_code']
+                        ?? null;
+                    $heure = (new \DateTimeImmutable($entry['time']))->format('Y-m-d H:i');
 
-                    $jours[$dayKey][] = $temp;
+                    if (empty($symbolCode)) {
+                        $this->logger->error("Symbol code manquant à $heure");
+                    }
+                    $jours[$dayKey][] = ['temp' => $temp, 'symbol' => $symbolCode];
                 }
 
                 $forecasts = [];
                 $i = 0;
-                foreach ($jours as $day => $temps) {
+                foreach ($jours as $day => $dataList) {
                     if ($i >= 7) break;
+
+                    $temps = array_column($dataList, 'temp');
+                    $symbols = array_column($dataList, 'symbol');
+                    $symbol = $symbols[round(count($symbols) / 2)] ?? null;
+                    $displayMeteo = $this->getSymbolMeta($symbol);
 
                     $forecasts[] = new ForecastData(
                         provider: 'Met.no',
                         date: new \DateTimeImmutable($day),
                         tmin: min($temps),
                         tmax: max($temps),
-                        description: null
+                        icon: $displayMeteo['icon'],
+                        emoji: $displayMeteo['emoji'],
                     );
 
                     $i++;
                 }
-                $item->set(["forecast"=>$forecasts, "todayHourly"=>$this->hourlyToday]);
+                $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyToday]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
@@ -143,83 +159,102 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $forecasts = [];
             }
         } else {
-            
+
             $infos = $item->get();
-            $forecasts=$infos["forecast"];
-            $this->hourlyToday=$infos["todayHourly"];
+            $forecasts = $infos["forecast"];
+            $this->hourlyToday = $infos["todayHourly"];
         }
         return $forecasts;
     }
 
     public function getTodayHourly(): array
     {
-        $result = [];
         $today = (new \DateTimeImmutable())->format('Y-m-d');
-        $heuresSouhaitees = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+        $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
+        $cacheKey = 'metno.hourly.' . $today;
+
+        // Récupère le cache existant
+        $cacheItem = $this->cache->getItem($cacheKey);
+        $stored = $cacheItem->isHit() ? $cacheItem->get() : [];
+
 
         foreach ($this->hourlyToday as $entry) {
             $dt = (new \DateTimeImmutable($entry['time']))->setTimezone(new \DateTimeZone('Europe/Paris'));
+            $date = $dt->format('Y-m-d');
+            $time = $dt->format('G\h');
 
-            if ($dt->format('Y-m-d') !== $today) {
-                continue;
+            if ($date === $today || ($date === $tomorrow && $time === '0h')) {
+                $time = ($date === $tomorrow && $time === '0h') ? '24h' : $time;
+                $details = $entry['data']['instant']['details'] ?? [];
+                if (!isset($details['air_temperature'])) {
+                    continue;
+                }
+                $temp = $details['air_temperature'];
+                $symbolCode = $entry['data']['next_1_hours']['summary']['symbol_code'] ?? null;
+                $displayMeteo = $this->getSymbolMeta($symbolCode);
+                $newData = [
+                    'temp' => $temp,
+                    'desc' => $displayMeteo["label"],
+                    'icon' => $displayMeteo["icon"],
+                    'emoji' => $displayMeteo["emoji"],
+                ];
+
+                $stored[$time] = $newData;
             }
+        }
 
-            $heure = $dt->format('H:i');
-            if (!in_array($heure, $heuresSouhaitees)) {
-                continue;
-            }
+        ksort($stored);
 
-            $details = $entry['data']['instant']['details'] ?? [];
-            if (!isset($details['air_temperature'])) {
-                continue;
-            }
+        // Sauvegarde mise à jour
+        $cacheItem->set($stored)->expiresAfter(86400);
+        $this->cache->save($cacheItem);
 
-            $temp = $details['air_temperature'];
-            $symbolCode = $entry['data']['next_1_hours']['summary']['symbol_code'] ?? null;
-
+        // Conversion en objets HourlyForecastData
+        $result = [];
+        foreach ($stored as $time => $data) {
             $result[] = new \App\Dto\HourlyForecastData(
                 provider: 'Met.no',
-                time: $dt->format('H\hi'),
-                temperature: $temp,
-                description: $this->translateSymbol($symbolCode ?? 'inconnu'),
-                icon: $this->iconFromSymbol($symbolCode)
+                time: $time,
+                temperature: $data['temp'],
+                description: $data['desc'],
+                emoji: $data['emoji'],
             );
         }
 
         return $result;
     }
-    private function iconFromSymbol(?string $code): string
-    {
-        if (!$code) return '🌡️';
 
-        return match (true) {
-            str_contains($code, 'clearsky') => '☀️',
-            str_contains($code, 'cloudy') => '☁️',
-            str_contains($code, 'fair') => '🌤️',
-            str_contains($code, 'partlycloudy') => '⛅',
-            str_contains($code, 'rain') => '🌧️',
-            str_contains($code, 'snow') => '❄️',
-            str_contains($code, 'fog') => '🌫️',
-            str_contains($code, 'thunderstorm') => '⛈️',
-            default => '🌡️',
-        };
-    }
 
-    private function translateSymbol(string $symbol): string
+   private function getSymbolMeta(?string $code): array
+{
+    return match ($code) {
+        'clearsky_day' => ['label' => 'Ciel clair', 'emoji' => '☀️', 'icon' => 'wi wi-day-sunny'],
+        'clearsky_night' => ['label' => 'Ciel clair', 'emoji' => '☀️', 'icon' => 'wi wi-night-clear'],
+        'fair_day' => ['label' => 'Ensoleillé', 'emoji' => '🌤️', 'icon' => 'wi wi-day-sunny-overcast'],
+        'fair_night' => ['label' => 'Ensoleillé', 'emoji' => '🌤️', 'icon' => 'wi wi-night-alt-partly-cloudy'],
+        'partlycloudy_day' => ['label' => 'Partiellement nuageux', 'emoji' => '⛅', 'icon' => 'wi wi-day-cloudy'],
+        'partlycloudy_night' => ['label' => 'Partiellement nuageux', 'emoji' => '⛅', 'icon' => 'wi wi-night-alt-cloudy'],
+        'cloudy' => ['label' => 'Nuageux', 'emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
+        'lightrain' => ['label' => 'Pluie légère', 'emoji' => '🌦️', 'icon' => 'wi wi-showers'],
+        'lightrain_day' => ['label' => 'Pluie légère', 'emoji' => '🌦️', 'icon' => 'wi wi-day-showers'],
+        'lightrain_night' => ['label' => 'Pluie légère', 'emoji' => '🌦️', 'icon' => 'wi wi-night-alt-showers'],
+        'rain', 'rain_day', 'rain_night', 'rainshowers_day', 'rainshowers_night' =>
+            ['label' => 'Pluie', 'emoji' => '🌧️', 'icon' => 'wi wi-rain'],
+        'heavyrain', 'heavyrain_day', 'heavyrain_night' =>
+            ['label' => 'Pluie forte', 'emoji' => '🌧️', 'icon' => 'wi wi-rain-wind'],
+        'snow', 'heavysnow', 'snowshowers_day', 'snowshowers_night' =>
+            ['label' => 'Neige', 'emoji' => '❄️', 'icon' => 'wi wi-snow'],
+        'fog' => ['label' => 'Brouillard', 'emoji' => '🌫️', 'icon' => 'wi wi-fog'],
+        'thunderstorm', 'thunderstormshowers_day', 'thunderstormshowers_night' =>
+            ['label' => 'Orage', 'emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
+        default => $this->logUnknownSymbol($code),
+    };
+}
+
+
+    private function logUnknownSymbol(string $code): array
     {
-        // $this->logger->info($symbol);
-        return match ($symbol) {
-            'clearsky_day', 'clearsky_night' => 'Ciel clair',
-            'fair_day', 'fair_night' => 'Ensoleillé',
-            'partlycloudy_day', 'partlycloudy_night' => 'Partiellement nuageux',
-            'cloudy' => 'Nuageux',
-            'lightrain', 'lightrain_day', 'lightrain_night' => 'Pluie légère',
-            'rain', 'rain_day', 'rain_night', 'rainshowers_day' => 'Pluie',
-            'heavyrain' => 'Pluie forte',
-            'snow', 'heavysnow' => 'Neige',
-            'fog' => 'Brouillard',
-            'thunderstorm' => 'Orage',
-            default => 'Inconnu',
-        };
+        $this->logger->warning("Unrecognized symbol code: $code");
+        return ['label' => 'Inconnu', 'emoji' => '🌡️', 'icon' => '🌡️'];
     }
 }

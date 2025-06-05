@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+
 use App\Config\CityCoordinates;
 use App\Service\InfosOfTheDayService;
 use Psr\Cache\CacheItemPoolInterface;
@@ -27,17 +28,23 @@ class WeatherController extends AbstractController
             $forecastRows[$provider][] = $forecast;
         }
 
-    
+        $chartsData = [];
+        foreach ($hourly_forecast_aggregator->getAll() as $provider => $hourlyData) {
+            $chartsData[$provider] = [
+                'labels' => array_map(fn($h) => $h->time, $hourlyData),
+                'temperatures' => array_map(fn($h) => $h->temperature, $hourlyData),
+                'emoji' => array_map(fn($h) => $h->emoji, $hourlyData),
+            ];
+        }
 
-
-
-        return $this->render('meteo.html.twig', ['ville' => CityCoordinates::CITY, 'infosDay' => $infos_of_the_day_service->getInfosOfTheDay(), 'sources' => $weather_aggregator->getAll(), 'forecastRows' => $forecastRows, 'todayHourly' => $hourly_forecast_aggregator->getAll()]);
+        return $this->render('meteo.html.twig', ['ville' => CityCoordinates::CITY, 'infosDay' => $infos_of_the_day_service->getInfosOfTheDay(), 'sources' => $weather_aggregator->getAll(), 'forecastRows' => $forecastRows, 'todayHourly' => $chartsData]);
     }
 
-    #[Route('/clear-cache', name:"clear-cache")]
-    function clearstatcache(CacheItemPoolInterface $cache) : Response
+    #[Route('/clear-cache', name: "clear-cache")]
+    function clearstatcache(CacheItemPoolInterface $cache): Response
     {
-        	$cache->clear();
-            return new Response("ok");
+        $cache->clear();
+        return new Response("ok");
     }
+
 }
