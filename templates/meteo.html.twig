@@ -24,7 +24,7 @@
 			<button class="filter-btn active" data-target="all">Tous</button>
 			{% for source in sources %}
 				{% set provider = source.provider %}
-				<button class="filter-btn" data-target="provider-{{ loop.index }}" style="--color: {{ colors[provider].border }}">
+				<button class="filter-btn my-2" data-target="provider-{{ loop.index }}" style="--color: {{ colors[provider].border }}">
 					{{ provider }}
 				</button>
 			{% endfor %}
@@ -169,7 +169,9 @@
 				            maintainAspectRatio: false,
 				scales: {
 				  x: {
-				    ticks: { autoSkip: false }
+				    ticks: { autoSkip: false ,      font: {
+        size: window.innerWidth < 600 ? 10 : 12
+      }},
 				  },
 				  y: {
 				    position: 'left',
