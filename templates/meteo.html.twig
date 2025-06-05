@@ -91,111 +91,140 @@
 
 
 		 <script>
-		    const allLabels = [];
-		    for (let h = 0; h <= 24; h++) allLabels.push(h + 'h');
+				    const allLabels = [];
+				    for (let h = 0; h <= 24; h++) allLabels.push(h + 'h');
+				
+				    function alignData(labelsSource, dataSource) {
+				      return allLabels.map(label => {
+				        const idx = labelsSource.indexOf(label);
+				        return idx !== -1 ? dataSource[idx] : null;
+				      });
+				    }
+				
+				    const iconPlugin = {
+				      id: 'weatherIcons',
+				      afterDatasetsDraw(chart) {
+				        chart.data.datasets.forEach((dataset, datasetIndex) => {
+				          const meta = chart.getDatasetMeta(datasetIndex);
+				          if (!dataset.icons || meta.hidden) return;
+				          meta.data.forEach((point, i) => {
+				            const icon = dataset.icons[i];
+				            if (icon && point && !isNaN(dataset.data[i])) {
+				              chart.ctx.save();
+				              chart.ctx.font = '16px sans-serif';
+				              chart.ctx.textAlign = 'center';
+				              chart.ctx.fillText(icon, point.x, point.y - 20);
+				              chart.ctx.restore();
+				            }
+				          });
+				        });
+				      }
+				    };
+				const hourNowPlugin = {
+  id: 'hourNow',
+  beforeDraw(chart) {
+    const now = new Date();
+    const hour = now.getHours() + now.getMinutes() / 60;
+    const xScale = chart.scales.x;
+    const ctx = chart.ctx;
+    const labels = chart.data.labels;
+
+    if (!xScale || !ctx || !labels || labels.length === 0) return;
+
+    // Index fractionnel : ex 14.37 => entre label[14] et label[15]
+    const x0 = xScale.getPixelForValue(labels[Math.floor(hour)]);
+    const x1 = xScale.getPixelForValue(labels[Math.ceil(hour)]);
+    const ratio = hour - Math.floor(hour);
+    const x = x0 + (x1 - x0) * ratio;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, chart.chartArea.top);
+    ctx.lineTo(x, chart.chartArea.bottom);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#ff0000';
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
 		
-		    function alignData(labelsSource, dataSource) {
-		      return allLabels.map(label => {
-		        const idx = labelsSource.indexOf(label);
-		        return idx !== -1 ? dataSource[idx] : null;
-		      });
-		    }
+				    {% for source in sources %}
+				      {% set provider = source.provider %}
+				      {% if todayHourly[provider] is defined %}
+				        new Chart(document.getElementById('chart-{{ loop.index }}'), {
+				          type: 'line',
+				          data: {
+				            labels: allLabels,
+				            datasets: [{
+				              label: '{{ provider }}',
+				              data: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].temperatures|json_encode|raw }}),
+				              borderColor: '{{ colors[provider].border }}',
+				              backgroundColor: '{{ colors[provider].background }}',
+				              fill: false,
+				              tension: 0.3,
+				              pointRadius: 4,
+				              spanGaps: true,
+				              icons: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].icons|json_encode|raw }})
+				            }]
+				          },
+				          options: {
+				            responsive: true,
+				            maintainAspectRatio: false,
+				scales: {
+				  x: {
+				    ticks: { autoSkip: false }
+				  },
+				  y: {
+				    position: 'left',
+				    min: 0,
+				    max: 30,
+				  },
+				  yRight: {
+				    position: 'right',
+				    min: 0,
+				    max: 30,
+				    grid: { drawOnChartArea: false }, // empêche double quadrillage
+				  }
+				},
 		
-		    const iconPlugin = {
-		      id: 'weatherIcons',
-		      afterDatasetsDraw(chart) {
-		        chart.data.datasets.forEach((dataset, datasetIndex) => {
-		          const meta = chart.getDatasetMeta(datasetIndex);
-		          if (!dataset.icons || meta.hidden) return;
-		          meta.data.forEach((point, i) => {
-		            const icon = dataset.icons[i];
-		            if (icon && point && !isNaN(dataset.data[i])) {
-		              chart.ctx.save();
-		              chart.ctx.font = '16px sans-serif';
-		              chart.ctx.textAlign = 'center';
-		              chart.ctx.fillText(icon, point.x, point.y - 20);
-		              chart.ctx.restore();
-		            }
-		          });
-		        });
-		      }
-		    };
+				
+				            plugins: {
+				              legend: { display: false }
+				            }
+				          },
+				          plugins: [iconPlugin, hourNowPlugin]
+				        });
+				      {% endif %}
+				    {% endfor %}
+				
+				    const buttons = document.querySelectorAll('.filter-btn');
+		const cards = document.querySelectorAll('.provider-card');
 		
-		    {% for source in sources %}
-		      {% set provider = source.provider %}
-		      {% if todayHourly[provider] is defined %}
-		        new Chart(document.getElementById('chart-{{ loop.index }}'), {
-		          type: 'line',
-		          data: {
-		            labels: allLabels,
-		            datasets: [{
-		              label: '{{ provider }}',
-		              data: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].temperatures|json_encode|raw }}),
-		              borderColor: '{{ colors[provider].border }}',
-		              backgroundColor: '{{ colors[provider].background }}',
-		              fill: false,
-		              tension: 0.3,
-		              pointRadius: 4,
-		              spanGaps: true,
-		              icons: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].icons|json_encode|raw }})
-		            }]
-		          },
-		          options: {
-		            responsive: true,
-		            maintainAspectRatio: false,
-		scales: {
-		  x: {
-		    ticks: { autoSkip: false }
-		  },
-		  y: {
-		    position: 'left',
-		    min: 0,
-		    max: 30,
-		  },
-		  yRight: {
-		    position: 'right',
-		    min: 0,
-		    max: 30,
-		    grid: { drawOnChartArea: false }, // empêche double quadrillage
-		  }
-		},
+		document.querySelector('.filter-btn[data-target="all"]').addEventListener('click', () => {
+		  cards.forEach(card => card.style.display = 'block');
+		  buttons.forEach(btn => btn.classList.remove('active'));
+		  document.querySelector('.filter-btn[data-target="all"]').classList.add('active');
+		});
 		
-		            plugins: {
-		              legend: { display: false }
-		            }
-		          },
-		          plugins: [iconPlugin]
-		        });
-		      {% endif %}
-		    {% endfor %}
+		buttons.forEach(button => {
+		  if (button.dataset.target === 'all') return;
 		
-		    const buttons = document.querySelectorAll('.filter-btn');
-const cards = document.querySelectorAll('.provider-card');
-
-document.querySelector('.filter-btn[data-target="all"]').addEventListener('click', () => {
-  cards.forEach(card => card.style.display = 'block');
-  buttons.forEach(btn => btn.classList.remove('active'));
-  document.querySelector('.filter-btn[data-target="all"]').classList.add('active');
-});
-
-buttons.forEach(button => {
-  if (button.dataset.target === 'all') return;
-
-  button.addEventListener('click', () => {
-    button.classList.toggle('active');
-    document.querySelector('.filter-btn[data-target="all"]').classList.remove('active');
-
-    const activeTargets = Array.from(buttons)
-      .filter(btn => btn.classList.contains('active') && btn.dataset.target !== 'all')
-      .map(btn => btn.dataset.target);
-
-    cards.forEach(card => {
-      const matches = activeTargets.some(target => card.classList.contains(target));
-      card.style.display = matches || activeTargets.length === 0 ? 'block' : 'none';
-    });
-  });
-});
-
-		  </script>
+		  button.addEventListener('click', () => {
+		    button.classList.toggle('active');
+		    document.querySelector('.filter-btn[data-target="all"]').classList.remove('active');
+		
+		    const activeTargets = Array.from(buttons)
+		      .filter(btn => btn.classList.contains('active') && btn.dataset.target !== 'all')
+		      .map(btn => btn.dataset.target);
+		
+		    cards.forEach(card => {
+		      const matches = activeTargets.some(target => card.classList.contains(target));
+		      card.style.display = matches || activeTargets.length === 0 ? 'block' : 'none';
+		    });
+		  });
+		});
+		
+				  </script>
 	</section>
 {% endblock %}
