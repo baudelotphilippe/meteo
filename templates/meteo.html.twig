@@ -1,165 +1,201 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Météo{% endblock %}
+{% block title %}Météo
+{% endblock %}
 
 {% block body %}
-<section class="container my-4">
-  <h1 class="mb-1">Météo à {{ ville }}</h1>
-  <h2 class="mb-3">{{ infosDay.date }}</h2>
-  <p class="text-center mb-4 text-muted">Lever {{ infosDay.ephemeride.sunrise }} — Coucher {{ infosDay.ephemeride.sunset }}</p>
+	<section class="container my-4">
+		<h1 class="mb-1">Météo à
+			{{ ville }}</h1>
+		<h2 class="mb-3">{{ infosDay.date }}</h2>
+		<p class="text-center mb-4 text-muted">Lever
+			{{ infosDay.ephemeride.sunrise }}
+			— Coucher
+			{{ infosDay.ephemeride.sunset }}</p>
 
-  {% set colors = {
+		{% set colors = {
     'Met.no': { border: '#F28B82', background: 'rgba(242, 139, 130, 0.1)' },
     'Open-Meteo': { border: '#A7C7E7', background: 'rgba(167, 199, 231, 0.1)' },
     'OpenWeather': { border: '#FFD180', background: 'rgba(255, 209, 128, 0.1)' },
     'WeatherAPI': { border: '#C5E1A5', background: 'rgba(197, 225, 165, 0.1)' },
   } %}
 
-  <div class="text-center my-4" id="filter-bar">
-    <button class="filter-btn active" data-target="all">Tous</button>
-    {% for source in sources %}
-      {% set provider = source.provider %}
-      <button class="filter-btn" data-target="provider-{{ loop.index }}" style="--color: {{ colors[provider].border }}">
-        {{ provider }}
-      </button>
-    {% endfor %}
-  </div>
+		<div class="text-center my-4" id="filter-bar">
+			<button class="filter-btn active" data-target="all">Tous</button>
+			{% for source in sources %}
+				{% set provider = source.provider %}
+				<button class="filter-btn" data-target="provider-{{ loop.index }}" style="--color: {{ colors[provider].border }}">
+					{{ provider }}
+				</button>
+			{% endfor %}
+		</div>
 
-  <div class="row justify-content-center" id="cards-container">
-    {% for source in sources %}
-      {% set provider = source.provider %}
-      <div class="col-12 col-md-6 provider-card mt-3 provider-{{ loop.index }}">
-        <div class="card h-100 d-flex flex-column justify-content-between my-4">
-          <div class="card-body text-center">
-            <div class="row">
-              <div class="col-6">
-                <span class="weather-icon">
-                  {% if source.icon %}{{ source.icon }}{% endif %}
-                </span>
-              </div>
-              <div class="col-6 d-flex flex-column justify-content-between">
-                <p class="fs-0 fw-bold mb-2">{{ source.temperature|round }}°</p>
-                <div>
-                  <p class="small">Humidité : {{ source.humidity }}%</p>
-                  <p class="small">Vent : {{ source.wind|round }}km/h</p>
-                </div>
-              </div>
-            </div>
+		<div class="row justify-content-center" id="cards-container">
+			{% for source in sources %}
+				{% set provider = source.provider %}
+				<div class="col-12 col-md-6 provider-card mt-3 provider-{{ loop.index }}">
+					<div class="card h-100 d-flex flex-column justify-content-between my-4">
+						<div class="card-body text-center">
+							<div class="row">
+								<div class="col-6">
+									<span class="weather-icon">
+										{% if source.icon %}
+											{{ source.icon }}
+										{% endif %}
+									</span>
+								</div>
+								<div class="col-6 d-flex flex-column justify-content-between">
+									<p class="fs-0 fw-bold mb-2">{{ source.temperature|round }}°</p>
+									<div>
+										<p class="small">Humidité :
+											{{ source.humidity }}%</p>
+										<p class="small">Vent :
+											{{ source.wind|round }}km/h</p>
+									</div>
+								</div>
+							</div>
 
-            {% if todayHourly[provider] is defined %}
-              <div class="mt-3" style="height: 300px; position: relative;">
-                <canvas id="chart-{{ loop.index }}" class="weather-chart"></canvas>
-              </div>
-            {% endif %}
+							{% if todayHourly[provider] is defined %}
+								<div class="mt-3" style="height: 300px; position: relative;">
+									<canvas id="chart-{{ loop.index }}" class="weather-chart"></canvas>
+								</div>
+							{% endif %}
 
-            {% if forecastRows[provider] is defined %}
-              <div class="forecast-row mt-4">
-                {% for forecast in forecastRows[provider]|slice(1,7) %}
-                  <div class="forecast-cell">
-                    <div class="forecast-date">{{ forecast.date|jour_fr }}</div>
-                    {% if forecast.description %}<div class="forecast-icon">{{ forecast.description }}</div>{% endif %}
-                    <div class="forecast-temps">
-                      <span class="tmin">{{ forecast.tmin|round }}°</span>
-                      <span class="tmax">{{ forecast.tmax|round }}°</span>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-            {% endif %}
-          </div>
+							{% if forecastRows[provider] is defined %}
+								<div class="forecast-row mt-4">
+									{% for forecast in forecastRows[provider]|slice(1,7) %}
+										<div class="forecast-cell">
+											<div class="forecast-date">{{ forecast.date|jour_fr }}</div>
+											{% if forecast.description %}
+												<div class="forecast-icon">{{ forecast.description }}</div>
+											{% endif %}
+											<div class="forecast-temps">
+												<span class="tmin">{{ forecast.tmin|round }}°</span>
+												<span class="tmax">{{ forecast.tmax|round }}°</span>
+											</div>
+										</div>
+									{% endfor %}
+								</div>
+							{% endif %}
+						</div>
 
-          <div class="card-footer text-center">
-            <a href="{{ source.sourceUrl }}" target="_blank">
-              <img src="{{ source.logoUrl }}" alt="{{ source.sourceName }}" style="max-height: 30px;"><span class="ms-3 card-title">{{ source.provider }}</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
+						<div class="card-footer text-center">
+							<a href="{{ source.sourceUrl }}" target="_blank">
+								<img src="{{ source.logoUrl }}" alt="{{ source.sourceName }}" style="max-height: 30px;"><span class="ms-3 card-title">{{ source.provider }}</span>
+							</a>
+						</div>
+					</div>
+				</div>
+			{% endfor %}
+		</div>
 
 
+		 <script>
+		    const allLabels = [];
+		    for (let h = 0; h <= 24; h++) allLabels.push(h + 'h');
+		
+		    function alignData(labelsSource, dataSource) {
+		      return allLabels.map(label => {
+		        const idx = labelsSource.indexOf(label);
+		        return idx !== -1 ? dataSource[idx] : null;
+		      });
+		    }
+		
+		    const iconPlugin = {
+		      id: 'weatherIcons',
+		      afterDatasetsDraw(chart) {
+		        chart.data.datasets.forEach((dataset, datasetIndex) => {
+		          const meta = chart.getDatasetMeta(datasetIndex);
+		          if (!dataset.icons || meta.hidden) return;
+		          meta.data.forEach((point, i) => {
+		            const icon = dataset.icons[i];
+		            if (icon && point && !isNaN(dataset.data[i])) {
+		              chart.ctx.save();
+		              chart.ctx.font = '16px sans-serif';
+		              chart.ctx.textAlign = 'center';
+		              chart.ctx.fillText(icon, point.x, point.y - 20);
+		              chart.ctx.restore();
+		            }
+		          });
+		        });
+		      }
+		    };
+		
+		    {% for source in sources %}
+		      {% set provider = source.provider %}
+		      {% if todayHourly[provider] is defined %}
+		        new Chart(document.getElementById('chart-{{ loop.index }}'), {
+		          type: 'line',
+		          data: {
+		            labels: allLabels,
+		            datasets: [{
+		              label: '{{ provider }}',
+		              data: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].temperatures|json_encode|raw }}),
+		              borderColor: '{{ colors[provider].border }}',
+		              backgroundColor: '{{ colors[provider].background }}',
+		              fill: false,
+		              tension: 0.3,
+		              pointRadius: 4,
+		              spanGaps: true,
+		              icons: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].icons|json_encode|raw }})
+		            }]
+		          },
+		          options: {
+		            responsive: true,
+		            maintainAspectRatio: false,
+		scales: {
+		  x: {
+		    ticks: { autoSkip: false }
+		  },
+		  y: {
+		    position: 'left',
+		    min: 0,
+		    max: 30,
+		  },
+		  yRight: {
+		    position: 'right',
+		    min: 0,
+		    max: 30,
+		    grid: { drawOnChartArea: false }, // empêche double quadrillage
+		  }
+		},
+		
+		            plugins: {
+		              legend: { display: false }
+		            }
+		          },
+		          plugins: [iconPlugin]
+		        });
+		      {% endif %}
+		    {% endfor %}
+		
+		    const buttons = document.querySelectorAll('.filter-btn');
+const cards = document.querySelectorAll('.provider-card');
 
-  <script>
-    const allLabels = [];
-    for (let h = 0; h <= 24; h++) allLabels.push(h + 'h');
+document.querySelector('.filter-btn[data-target="all"]').addEventListener('click', () => {
+  cards.forEach(card => card.style.display = 'block');
+  buttons.forEach(btn => btn.classList.remove('active'));
+  document.querySelector('.filter-btn[data-target="all"]').classList.add('active');
+});
 
-    function alignData(labelsSource, dataSource) {
-      return allLabels.map(label => {
-        const idx = labelsSource.indexOf(label);
-        return idx !== -1 ? dataSource[idx] : null;
-      });
-    }
+buttons.forEach(button => {
+  if (button.dataset.target === 'all') return;
 
-    const iconPlugin = {
-      id: 'weatherIcons',
-      afterDatasetsDraw(chart) {
-        chart.data.datasets.forEach((dataset, datasetIndex) => {
-          const meta = chart.getDatasetMeta(datasetIndex);
-          if (!dataset.icons || meta.hidden) return;
-          meta.data.forEach((point, i) => {
-            const icon = dataset.icons[i];
-            if (icon && point && !isNaN(dataset.data[i])) {
-              chart.ctx.save();
-              chart.ctx.font = '16px sans-serif';
-              chart.ctx.textAlign = 'center';
-              chart.ctx.fillText(icon, point.x, point.y - 20);
-              chart.ctx.restore();
-            }
-          });
-        });
-      }
-    };
+  button.addEventListener('click', () => {
+    button.classList.toggle('active');
+    document.querySelector('.filter-btn[data-target="all"]').classList.remove('active');
 
-    {% for source in sources %}
-      {% set provider = source.provider %}
-      {% if todayHourly[provider] is defined %}
-        new Chart(document.getElementById('chart-{{ loop.index }}'), {
-          type: 'line',
-          data: {
-            labels: allLabels,
-            datasets: [{
-              label: '{{ provider }}',
-              data: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].temperatures|json_encode|raw }}),
-              borderColor: '{{ colors[provider].border }}',
-              backgroundColor: '{{ colors[provider].background }}',
-              fill: false,
-              tension: 0.3,
-              pointRadius: 4,
-              spanGaps: true,
-              icons: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].icons|json_encode|raw }})
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: { ticks: { autoSkip: false } },
-              y: { min: 0, max: 40 }
-            },
-            plugins: {
-              legend: { display: false }
-            }
-          },
-          plugins: [iconPlugin]
-        });
-      {% endif %}
-    {% endfor %}
+    const activeTargets = Array.from(buttons)
+      .filter(btn => btn.classList.contains('active') && btn.dataset.target !== 'all')
+      .map(btn => btn.dataset.target);
 
-    document.querySelectorAll('.filter-btn').forEach(button => {
-      button.addEventListener('click', () => {
-        const target = button.dataset.target;
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-        document.querySelectorAll('.provider-card').forEach(card => {
-          if (target === 'all') {
-            card.style.display = 'block';
-          } else {
-            card.style.display = card.classList.contains(target) ? 'block' : 'none';
-          }
-        });
-      });
+    cards.forEach(card => {
+      const matches = activeTargets.some(target => card.classList.contains(target));
+      card.style.display = matches || activeTargets.length === 0 ? 'block' : 'none';
     });
-  </script>
-</section>
+  });
+});
+
+		  </script>
+	</section>
 {% endblock %}

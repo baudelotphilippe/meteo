@@ -131,6 +131,12 @@ h1, h2 {
   justify-content: center;
   overflow: hidden;
 }
+@media (max-width: 576px) {
+  .weather-icon {
+    font-size: 6rem;
+    height: 6.5rem;
+  }
+}
 
 .fs-0 {
   font-size: 4rem;
