@@ -241,7 +241,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
             'fog' => ['label' => 'Brouillard', 'emoji' => '🌫️', 'icon' => 'wi wi-fog'],
 
-            'lightrain', 'lightrain_day', 'lightrain_night' => ['label' => 'Pluie légère', 'emoji' => '🌦️', 'icon' => 'wi wi-showers'],
+            'lightrain', 'lightrain_day', 'lightrain_night', 'lightrainshowers_day' => ['label' => 'Pluie légère', 'emoji' => '🌦️', 'icon' => 'wi wi-showers'],
 
             'rain', 'rain_day', 'rain_night' => ['label' => 'Pluie', 'emoji' => '🌧️', 'icon' => 'wi wi-rain'],
             'rainshowers_day', 'rainshowers_night', 'rainshowers' => ['label' => 'Averses', 'emoji' => '🌦️', 'icon' => 'wi wi-showers'],
@@ -261,7 +261,6 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
             default => $this->logUnknownSymbol($code),
         };
     }
-
 
     private function logUnknownSymbol(string $code): array
     {
