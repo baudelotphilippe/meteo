@@ -107,7 +107,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                         tmin: $day['day']['mintemp_c'],
                         tmax: $day['day']['maxtemp_c'],
                         icon: $picto['icon'],
-                        emoji:$picto['emoji']
+                        emoji: $picto['emoji']
                     );
                 }
 
@@ -166,25 +166,31 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         return $result;
     }
 
-   private function iconFromCondition(string $text): array
-{
-    $t = mb_strtolower($text);
+    private function iconFromCondition(string $text): array
+    {
+        $t = mb_strtolower($text);
 
-    return match (true) {
-        str_contains($t, 'orage') => ['emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
-        str_contains($t, 'neige'), str_contains($t, 'averses de neige') => ['emoji' => '❄️', 'icon' => 'wi wi-snow'],
-        str_contains($t, 'grêle') => ['emoji' => '🧊', 'icon' => 'wi wi-hail'],
-        str_contains($t, 'pluie'), str_contains($t, 'averses') => ['emoji' => '🌧️', 'icon' => 'wi wi-rain'],
-        str_contains($t, 'bruine') => ['emoji' => '🌦️', 'icon' => 'wi wi-showers'],
-        str_contains($t, 'brouillard'), str_contains($t, 'brume') => ['emoji' => '🌫️', 'icon' => 'wi wi-fog'],
-        str_contains($t, 'ensoleillé'), str_contains($t, 'soleil') => ['emoji' => '☀️', 'icon' => 'wi wi-day-sunny'],
-        str_contains($t, 'partiellement couvert'), str_contains($t, 'partiellement nuageux') => ['emoji' => '⛅', 'icon' => 'wi wi-day-cloudy'],
-        str_contains($t, 'couvert'), str_contains($t, 'nuageux') => ['emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
-        str_contains($t, 'venteux'), str_contains($t, 'rafales') => ['emoji' => '💨', 'icon' => 'wi wi-strong-wind'],
-        str_contains($t, 'gel'), str_contains($t, 'givré') => ['emoji' => '🥶', 'icon' => 'wi wi-snowflake-cold'],
-        str_contains($t, 'beau temps') => ['emoji' => '🌞', 'icon' => 'wi wi-day-sunny'],
-        default => ['emoji' => '🌡️', 'icon' => 'wi wi-na'],
-    };
-}
+        return match (true) {
+            str_contains($t, 'orage') => ['emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
+            str_contains($t, 'neige'), str_contains($t, 'averses de neige') => ['emoji' => '❄️', 'icon' => 'wi wi-snow'],
+            str_contains($t, 'grêle') => ['emoji' => '🧊', 'icon' => 'wi wi-hail'],
+            str_contains($t, 'pluie'), str_contains($t, 'averses') => ['emoji' => '🌧️', 'icon' => 'wi wi-rain'],
+            str_contains($t, 'bruine') => ['emoji' => '🌦️', 'icon' => 'wi wi-showers'],
+            str_contains($t, 'brouillard'), str_contains($t, 'brume') => ['emoji' => '🌫️', 'icon' => 'wi wi-fog'],
+            str_contains($t, 'ensoleillé'), str_contains($t, 'soleil'), str_contains($t, 'clair'), str_contains($t, 'dégagé') => ['emoji' => '☀️', 'icon' => 'wi wi-day-sunny'],
+            str_contains($t, 'partiellement couvert'), str_contains($t, 'partiellement nuageux'), str_contains($t, 'éclaircies'), str_contains($t, 'variable'), str_contains($t, 'mitigé') => ['emoji' => '⛅', 'icon' => 'wi wi-day-cloudy'],
+            str_contains($t, 'couvert'), str_contains($t, 'nuageux') => ['emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
+            str_contains($t, 'tempête'), str_contains($t, 'fortes rafales') => ['emoji' => '🌪️', 'icon' => 'wi wi-storm-showers'],
+            str_contains($t, 'venteux'), str_contains($t, 'rafales') => ['emoji' => '💨', 'icon' => 'wi wi-strong-wind'],
+            str_contains($t, 'gel'), str_contains($t, 'givré') => ['emoji' => '🥶', 'icon' => 'wi wi-snowflake-cold'],
+            str_contains($t, 'beau temps') => ['emoji' => '🌞', 'icon' => 'wi wi-day-sunny'],
+            default => $this->logUnknownSymbol($text),
+        };
+    }
 
+    private function logUnknownSymbol(string $code): array
+    {
+        $this->logger->warning("Unrecognized symbol code for WeatherApiService : $code");
+        return ['label' => 'Inconnu', 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
+    }
 }

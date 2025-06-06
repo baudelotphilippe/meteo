@@ -206,6 +206,12 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
             99 => ['emoji' => '⛈️', 'label' => 'Orage avec grêle', 'icon' => 'wi wi-thunderstorm'],
         ];
 
-        return $map[$code] ?? ['emoji' => '🌡️', 'label' => 'Inconnu', 'icon' => 'wi wi-na'];
+        return $map[$code] ?? $this->logUnknownSymbol($code);
+    }
+
+    private function logUnknownSymbol(string $code): array
+    {
+        $this->logger->warning("Unrecognized symbol code for OpenMeteo : $code");
+        return ['label' => 'inconnu', 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
     }
 }

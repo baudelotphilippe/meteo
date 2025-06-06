@@ -205,8 +205,13 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         '11' => ['emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
         '13' => ['emoji' => '❄️', 'icon' => 'wi wi-snow'],
         '50' => ['emoji' => '🌫️', 'icon' => 'wi wi-fog'],
-        default => ['emoji' => '🌡️', 'icon' => 'wi wi-na'],
+        default => $this->logUnknownSymbol($code),
     };
 }
 
+    private function logUnknownSymbol(string $code): array
+    {
+        $this->logger->warning("Unrecognized symbol code for OpenWeather : $code");
+        return [ 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
+    }
 }

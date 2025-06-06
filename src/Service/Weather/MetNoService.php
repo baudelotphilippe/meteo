@@ -265,7 +265,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
     private function logUnknownSymbol(string $code): array
     {
-        $this->logger->warning("Unrecognized symbol code: $code");
-        return ['label' => 'Inconnu', 'emoji' => '🌡️', 'icon' => '🌡️'];
+        $this->logger->warning("Unrecognized symbol code for Met.no : $code");
+        return ['label' => 'Inconnu', 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
     }
 }
