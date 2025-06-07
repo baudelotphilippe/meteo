@@ -1,6 +1,7 @@
 <?php
 
-namespace App\Service\Weather;
+namespace App\Service\ApiSources;
+
 
 use App\Dto\WeatherData;
 use App\Dto\ForecastData;

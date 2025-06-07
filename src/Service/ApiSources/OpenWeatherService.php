@@ -1,13 +1,11 @@
 <?php
-
-namespace App\Service\Weather;
+namespace App\Service\ApiSources;
 
 use App\Dto\WeatherData;
 use App\Dto\ForecastData;
 use Psr\Log\LoggerInterface;
 use App\Config\CityCoordinates;
 use App\Dto\HourlyForecastData;
-use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use App\Service\Weather\WeatherProviderInterface;
 use App\Service\Forecast\ForecastProviderInterface;

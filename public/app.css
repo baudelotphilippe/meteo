@@ -89,12 +89,10 @@ a{
 
 .forecast-temps .tmax {
   color: #d9534f;
-  /* font-weight: bold; */
 }
 
 .forecast-temps .tmin {
   color: #0275d8;
-  /* font-weight: bold; */
 }
 
 #filter-bar {
@@ -147,17 +145,17 @@ a{
 }
 
 .source-met-no {
-    color: rgba(242, 139, 130, 0.5); /* rouge */
+    color: rgba(242, 139, 130, 0.5); 
 }
 
 .source-open-meteo {
-    color: rgba(167, 199, 231, 0.5); /* bleu */
+    color: rgba(167, 199, 231, 0.5); 
 }
 
 .source-openweather {
-    color: rgba(255, 209, 128, 0.5); /* orange */
+    color: rgba(255, 209, 128, 0.5); 
 }
 
 .source-weatherapi {
-    color: rgba(197, 225, 165, 0.5); /* vert */
+    color: rgba(197, 225, 165, 0.5); 
 }

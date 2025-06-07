@@ -22,11 +22,11 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
-    # Services avec paramètre API
-    App\Service\Weather\OpenWeatherService:
+    # Services avec paramètre API (keys)
+    App\Service\ApiSources\OpenWeatherService:
         arguments:
             $apiKey: '%openweather.api_key%'
-    App\Service\Weather\WeatherApiService:
+    App\Service\ApiSources\WeatherApiService:
         arguments:
             $apiKey: '%weatherapi.key%'
 
