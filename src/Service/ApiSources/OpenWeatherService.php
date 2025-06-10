@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Service\ApiSources;
 
 use App\Dto\WeatherData;
@@ -24,10 +25,19 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     private array $hourlyToday = [];
 
 
-    public function __construct(private HttpClientInterface $client, private string $apiKey, private LoggerInterface $logger, private CacheItemPoolInterface $cache) {}
+    public function __construct(
+        private HttpClientInterface $client, 
+        private string $apiKey, 
+        private LoggerInterface $logger, 
+        private CacheItemPoolInterface $cache
+        ) {}
 
     public function getWeather(): WeatherData
     {
+        if (empty($this->apiKey)) {
+            throw new \RuntimeException('Clé API OpenWeather absente.');
+        }
+        
         $cacheKey = 'openweather.current';
         $item = $this->cache->getItem($cacheKey);
 
@@ -56,7 +66,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 $item->set($weather);
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
-            } catch (TransportExceptionInterface $e) {
+            } catch (ClientExceptionInterface | TransportExceptionInterface $e) {
                 $this->logger->error('Erreur API OpenWeather Met.no : ' . $e->getMessage());
                 $weather = new WeatherData(
                     provider: 'OpenWeather',
@@ -67,7 +77,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                     sourceName: 'OpenWeatherMap',
                     logoUrl: 'https://openweathermap.org/themes/openweathermap/assets/img/logo_white_cropped.png',
                     sourceUrl: 'https://openweathermap.org/current',
-                    icon: null
+                    icon: null,
+                    enabled: false
                 );
             }
         } else {
@@ -111,7 +122,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                     $mainDesc = array_key_first($descFreq);
 
                     $iconCode = $entries[0]['weather'][0]['icon'];
-                    $icon = $this->iconFromCode($iconCode); 
+                    $icon = $this->iconFromCode($iconCode);
 
                     $forecasts[] = new ForecastData(
                         provider: 'OpenWeather',
@@ -119,7 +130,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                         tmin: min($temps),
                         tmax: max($temps),
                         icon: $icon['icon'],
-                        emoji:$icon['emoji']
+                        emoji: $icon['emoji']
                     );
                 }
                 $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyToday]);
@@ -193,23 +204,23 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
 
 
-  private function iconFromCode(string $code): array
-{
-    return match (substr($code, 0, 2)) {
-        '01' => ['emoji' => '☀️', 'icon' => 'wi wi-day-sunny'],
-        '02' => ['emoji' => '🌤️', 'icon' => 'wi wi-day-sunny-overcast'],
-        '03', '04' => ['emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
-        '09', '10' => ['emoji' => '🌧️', 'icon' => 'wi wi-rain'],
-        '11' => ['emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
-        '13' => ['emoji' => '❄️', 'icon' => 'wi wi-snow'],
-        '50' => ['emoji' => '🌫️', 'icon' => 'wi wi-fog'],
-        default => $this->logUnknownSymbol($code),
-    };
-}
+    private function iconFromCode(string $code): array
+    {
+        return match (substr($code, 0, 2)) {
+            '01' => ['emoji' => '☀️', 'icon' => 'wi wi-day-sunny'],
+            '02' => ['emoji' => '🌤️', 'icon' => 'wi wi-day-sunny-overcast'],
+            '03', '04' => ['emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
+            '09', '10' => ['emoji' => '🌧️', 'icon' => 'wi wi-rain'],
+            '11' => ['emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
+            '13' => ['emoji' => '❄️', 'icon' => 'wi wi-snow'],
+            '50' => ['emoji' => '🌫️', 'icon' => 'wi wi-fog'],
+            default => $this->logUnknownSymbol($code),
+        };
+    }
 
     private function logUnknownSymbol(string $code): array
     {
         $this->logger->warning("Unrecognized symbol code for OpenWeather : $code");
-        return [ 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
+        return ['emoji' => '🌡️', 'icon' => 'wi wi-na'];
     }
 }

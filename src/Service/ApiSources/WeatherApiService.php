@@ -32,6 +32,10 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
 
     public function getWeather(): WeatherData
     {
+        if (empty($this->apiKey)) {
+            throw new \RuntimeException('Clé API WeatherApi absente.');
+        }
+
         $cacheKey = 'weatherapi.current';
         $item = $this->cache->getItem($cacheKey);
 
@@ -60,7 +64,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                 $item->set($weather);
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
-            } catch (TransportExceptionInterface $e) {
+            } catch (ClientExceptionInterface | TransportExceptionInterface $e) {
                 $this->logger->error('Erreur API WeatherAPI Met.no : ' . $e->getMessage());
                 $weather = new WeatherData(
                     provider: 'WeatherAPI',
@@ -71,7 +75,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                     sourceName: 'WeatherAPI',
                     logoUrl: 'https://cdn.weatherapi.com/v4/images/weatherapi_logo.png',
                     sourceUrl: 'https://www.weatherapi.com/docs/',
-                    icon: null
+                    icon: null,                
+                    enabled: false
                 );
             }
         } else {

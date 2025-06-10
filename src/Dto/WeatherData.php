@@ -13,6 +13,7 @@ class WeatherData
         public string $sourceName,
         public string $logoUrl,
         public string $sourceUrl,
-        public ?string $icon
+        public ?string $icon,
+        public bool $enabled = true
     ) {}
 }

@@ -74,7 +74,8 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                     sourceName: 'MET Norway (Yr.no)',
                     logoUrl: 'https://www.met.no/_/image/9d963a8e-34d3-474e-8b53-70cfd6ddee6a:ff706c6507f82977d3453bd29eb71e4c44b60a0b/logo_met_no.svg',
                     sourceUrl: 'https://api.met.no/weatherapi/locationforecast/2.0/documentation',
-                    icon: null
+                    icon: null,
+                    enabled:false
                 );
             }
         } else {
