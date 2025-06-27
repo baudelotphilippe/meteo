@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Dto;
 
 class ForecastData
@@ -10,7 +12,7 @@ class ForecastData
         public float $tmin,
         public float $tmax,
         public string $icon,
-        public string $emoji
-
-    ) {}
+        public string $emoji,
+    ) {
+    }
 }

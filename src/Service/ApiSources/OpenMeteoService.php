@@ -1,19 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service\ApiSources;
 
-
-use App\Dto\WeatherData;
-use App\Dto\ForecastData;
-use Psr\Log\LoggerInterface;
 use App\Config\CityCoordinates;
+use App\Dto\ForecastData;
 use App\Dto\HourlyForecastData;
-use App\Service\Weather\WeatherProviderInterface;
+use App\Dto\WeatherData;
 use App\Service\Forecast\ForecastProviderInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use App\Service\HourlyForecast\HourlyForecastProviderInterface;
+use App\Service\Weather\WeatherProviderInterface;
 use Psr\Cache\CacheItemPoolInterface;
-use Symfony\Contracts\HttpClient\Exception\{ClientExceptionInterface, ServerExceptionInterface, TransportExceptionInterface, RedirectionExceptionInterface};
+use Psr\Log\LoggerInterface;
+use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
@@ -23,8 +27,9 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
     public function __construct(
         private HttpClientInterface $client,
         private LoggerInterface $logger,
-        private CacheItemPoolInterface $cache
-    ) {}
+        private CacheItemPoolInterface $cache,
+    ) {
+    }
 
     public function getWeather(): WeatherData
     {
@@ -39,8 +44,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                         'longitude' => CityCoordinates::LON,
                         'current_weather' => true,
                         'hourly' => 'relative_humidity_2m',
-                        'timezone' => 'auto'
-                    ]
+                        'timezone' => 'auto',
+                    ],
                 ])->toArray();
 
                 $weatherInfo = $this->getWeatherInfo($data['current_weather']['weathercode']);
@@ -62,7 +67,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
             } catch (TransportExceptionInterface $e) {
-                $this->logger->error('Erreur API Weather OpenMeteo : ' . $e->getMessage());
+                $this->logger->error('Erreur API Weather OpenMeteo : '.$e->getMessage());
                 $weather = new WeatherData(
                     provider: 'Open-Meteo',
                     temperature: 0,
@@ -73,12 +78,13 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                     logoUrl: 'https://apps.homeycdn.net/app/com.spkes.openMeteo/21/0649a343-6f0b-4a54-9f68-ad818aaab853/drivers/weather/assets/images/large.png',
                     sourceUrl: 'https://open-meteo.com/en/docs',
                     icon: null,
-                    enabled:false
+                    enabled: false
                 );
             }
         } else {
             $weather = $item->get();
         }
+
         return $weather;
     }
 
@@ -95,8 +101,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                         'longitude' => CityCoordinates::LON,
                         'daily' => 'temperature_2m_min,temperature_2m_max,weathercode',
                         'hourly' => 'temperature_2m,weathercode',
-                        'timezone' => 'auto'
-                    ]
+                        'timezone' => 'auto',
+                    ],
                 ]);
 
                 $data = $response->toArray();
@@ -114,21 +120,21 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                         tmax: $data['daily']['temperature_2m_max'][$i],
                         icon: $info['icon'],
                         emoji: $info['emoji'],
-
                     );
                 }
-                $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyData]);
+                $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyData]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
-            } catch (TransportExceptionInterface | ClientExceptionInterface | ServerExceptionInterface | RedirectionExceptionInterface $e) {
-                $this->logger->error('Erreur API Prévisions OpenMeteo : ' . $e->getMessage());
+            } catch (TransportExceptionInterface|ClientExceptionInterface|ServerExceptionInterface|RedirectionExceptionInterface $e) {
+                $this->logger->error('Erreur API Prévisions OpenMeteo : '.$e->getMessage());
                 $forecasts = [];
             }
         } else {
             $infos = $item->get();
-            $forecasts = $infos["forecast"];
-            $this->hourlyData = $infos["todayHourly"];
+            $forecasts = $infos['forecast'];
+            $this->hourlyData = $infos['todayHourly'];
         }
+
         return $forecasts;
     }
 
@@ -139,7 +145,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         }
 
         $today = (new \DateTimeImmutable())->format('Y-m-d');
-        $tomorrow = (new \DateTimeImmutable("+1 day"))->format('Y-m-d');
+        $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
 
         $result = [];
 
@@ -148,7 +154,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
             $date = $dt->format('Y-m-d');
             $time = $dt->format('G\h');
 
-            if (($date === $today) || (($date === $tomorrow) && ($time === "0h"))) {
+            if (($date === $today) || (($date === $tomorrow) && ($time === '0h'))) {
                 $time = ($date === $tomorrow) ? '24h' : $time;
                 $info = $this->getWeatherInfo($this->hourlyData['weathercode'][$i]);
                 $result[] = new HourlyForecastData(
@@ -157,7 +163,6 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                     temperature: $this->hourlyData['temperature_2m'][$i],
                     description: $info['label'],
                     emoji: $info['emoji'],
-
                 );
             }
         }
@@ -214,6 +219,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
     private function logUnknownSymbol(string $code): array
     {
         $this->logger->warning("Unrecognized symbol code for OpenMeteo : $code");
+
         return ['label' => 'inconnu', 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
     }
 }

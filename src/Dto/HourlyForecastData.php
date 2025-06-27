@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Dto;
 
 class HourlyForecastData
@@ -8,6 +11,7 @@ class HourlyForecastData
         public string $time,       // format "HHhmm"
         public float $temperature,
         public string $description,
-        public string $emoji
-    ) {}
+        public string $emoji,
+    ) {
+    }
 }

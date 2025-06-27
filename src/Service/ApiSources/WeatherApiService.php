@@ -1,34 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service\ApiSources;
 
-use App\Dto\WeatherData;
-use App\Dto\ForecastData;
-use Psr\Log\LoggerInterface;
 use App\Config\CityCoordinates;
+use App\Dto\ForecastData;
 use App\Dto\HourlyForecastData;
-use Psr\Cache\CacheItemPoolInterface;
-use App\Service\Weather\WeatherProviderInterface;
+use App\Dto\WeatherData;
 use App\Service\Forecast\ForecastProviderInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use App\Service\HourlyForecast\HourlyForecastProviderInterface;
+use App\Service\Weather\WeatherProviderInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class WeatherApiService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
     private string $endpointWeather = 'https://api.weatherapi.com/v1/current.json';
-    private string $endpointForecast =  'https://api.weatherapi.com/v1/forecast.json';
+    private string $endpointForecast = 'https://api.weatherapi.com/v1/forecast.json';
     private array $hourlyToday = [];
 
     public function __construct(
         private HttpClientInterface $client,
         private string $apiKey,
         private LoggerInterface $logger,
-        private CacheItemPoolInterface $cache
-    ) {}
+        private CacheItemPoolInterface $cache,
+    ) {
+    }
 
     public function getWeather(): WeatherData
     {
@@ -45,8 +48,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                     'query' => [
                         'key' => $this->apiKey,
                         'q' => 'Poitiers',
-                        'lang' => 'fr'
-                    ]
+                        'lang' => 'fr',
+                    ],
                 ]);
 
                 $data = $response->toArray();
@@ -64,8 +67,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                 $item->set($weather);
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
-            } catch (ClientExceptionInterface | TransportExceptionInterface $e) {
-                $this->logger->error('Erreur API WeatherAPI Met.no : ' . $e->getMessage());
+            } catch (ClientExceptionInterface|TransportExceptionInterface $e) {
+                $this->logger->error('Erreur API WeatherAPI Met.no : '.$e->getMessage());
                 $weather = new WeatherData(
                     provider: 'WeatherAPI',
                     temperature: 0,
@@ -75,13 +78,14 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                     sourceName: 'WeatherAPI',
                     logoUrl: 'https://cdn.weatherapi.com/v4/images/weatherapi_logo.png',
                     sourceUrl: 'https://www.weatherapi.com/docs/',
-                    icon: null,                
+                    icon: null,
                     enabled: false
                 );
             }
         } else {
             $weather = $item->get();
         }
+
         return $weather;
     }
 
@@ -97,8 +101,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                         'key' => $this->apiKey,
                         'q' => CityCoordinates::CITY,
                         'days' => 3,
-                        'lang' => 'fr'
-                    ]
+                        'lang' => 'fr',
+                    ],
                 ]);
 
                 $data = $response->toArray();
@@ -117,28 +121,28 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                     );
                 }
 
-                $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyToday]);
+                $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
 
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
-                TransportExceptionInterface |
-                ClientExceptionInterface |
-                ServerExceptionInterface |
+                TransportExceptionInterface|
+                ClientExceptionInterface|
+                ServerExceptionInterface|
                 RedirectionExceptionInterface $e
             ) {
-                $this->logger->error('Erreur API Prévisions WeatherAPI : ' . $e->getMessage());
+                $this->logger->error('Erreur API Prévisions WeatherAPI : '.$e->getMessage());
+
                 return [];
             }
         } else {
             $infos = $item->get();
-            $forecasts = $infos["forecast"];
-            $this->hourlyToday = $infos["todayHourly"];
+            $forecasts = $infos['forecast'];
+            $this->hourlyToday = $infos['todayHourly'];
         }
+
         return $forecasts;
     }
-
-
 
     public function getTodayHourly(): array
     {
@@ -168,7 +172,6 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             emoji: $this->iconFromCondition($tomorrow['condition']['text'])['emoji']
         );
 
-
         return $result;
     }
 
@@ -197,6 +200,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
     private function logUnknownSymbol(string $code): array
     {
         $this->logger->warning("Unrecognized symbol code for WeatherApiService : $code");
+
         return ['label' => 'Inconnu', 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
     }
 }

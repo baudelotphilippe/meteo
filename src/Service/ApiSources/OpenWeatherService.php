@@ -1,21 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service\ApiSources;
 
-use App\Dto\WeatherData;
-use App\Dto\ForecastData;
-use Psr\Log\LoggerInterface;
 use App\Config\CityCoordinates;
+use App\Dto\ForecastData;
 use App\Dto\HourlyForecastData;
-use Psr\Cache\CacheItemPoolInterface;
-use App\Service\Weather\WeatherProviderInterface;
+use App\Dto\WeatherData;
 use App\Service\Forecast\ForecastProviderInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use App\Service\HourlyForecast\HourlyForecastProviderInterface;
+use App\Service\Weather\WeatherProviderInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class OpenWeatherService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
@@ -24,20 +26,20 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
     private array $hourlyToday = [];
 
-
     public function __construct(
-        private HttpClientInterface $client, 
-        private string $apiKey, 
-        private LoggerInterface $logger, 
-        private CacheItemPoolInterface $cache
-        ) {}
+        private HttpClientInterface $client,
+        private string $apiKey,
+        private LoggerInterface $logger,
+        private CacheItemPoolInterface $cache,
+    ) {
+    }
 
     public function getWeather(): WeatherData
     {
         if (empty($this->apiKey)) {
             throw new \RuntimeException('Clé API OpenWeather absente.');
         }
-        
+
         $cacheKey = 'openweather.current';
         $item = $this->cache->getItem($cacheKey);
 
@@ -48,8 +50,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                         'q' => CityCoordinates::CITY,
                         'appid' => $this->apiKey,
                         'units' => 'metric',
-                        'lang' => 'fr'
-                    ]
+                        'lang' => 'fr',
+                    ],
                 ])->toArray();
 
                 $weather = new WeatherData(
@@ -66,8 +68,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 $item->set($weather);
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
-            } catch (ClientExceptionInterface | TransportExceptionInterface $e) {
-                $this->logger->error('Erreur API OpenWeather Met.no : ' . $e->getMessage());
+            } catch (ClientExceptionInterface|TransportExceptionInterface $e) {
+                $this->logger->error('Erreur API OpenWeather Met.no : '.$e->getMessage());
                 $weather = new WeatherData(
                     provider: 'OpenWeather',
                     temperature: 0,
@@ -84,6 +86,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         } else {
             $weather = $item->get();
         }
+
         return $weather;
     }
 
@@ -100,8 +103,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                         'lon' => CityCoordinates::LON,
                         'units' => 'metric',
                         'lang' => 'fr',
-                        'appid' => $this->apiKey
-                    ]
+                        'appid' => $this->apiKey,
+                    ],
                 ]);
 
                 $data = $response->toArray();
@@ -116,8 +119,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 $forecasts = [];
 
                 foreach (array_slice($grouped, 0, 7, true) as $day => $entries) {
-                    $temps = array_map(fn($e) => $e['main']['temp'], $entries);
-                    $descFreq = array_count_values(array_map(fn($e) => $e['weather'][0]['description'], $entries));
+                    $temps = array_map(fn ($e) => $e['main']['temp'], $entries);
+                    $descFreq = array_count_values(array_map(fn ($e) => $e['weather'][0]['description'], $entries));
                     arsort($descFreq);
                     $mainDesc = array_key_first($descFreq);
 
@@ -133,23 +136,24 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                         emoji: $icon['emoji']
                     );
                 }
-                $item->set(["forecast" => $forecasts, "todayHourly" => $this->hourlyToday]);
+                $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
-                TransportExceptionInterface |
-                ClientExceptionInterface |
-                ServerExceptionInterface |
+                TransportExceptionInterface|
+                ClientExceptionInterface|
+                ServerExceptionInterface|
                 RedirectionExceptionInterface $e
             ) {
-                $this->logger->error('Erreur API Met.no : ' . $e->getMessage());
+                $this->logger->error('Erreur API Met.no : '.$e->getMessage());
                 $forecasts = [];
             }
         } else {
             $infos = $item->get();
-            $forecasts = $infos["forecast"];
-            $this->hourlyToday = $infos["todayHourly"];
+            $forecasts = $infos['forecast'];
+            $this->hourlyToday = $infos['todayHourly'];
         }
+
         return $forecasts;
     }
 
@@ -157,7 +161,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     {
         $today = (new \DateTimeImmutable())->format('Y-m-d');
         $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
-        $cacheKey = 'openweather.hourly.' . $today;
+        $cacheKey = 'openweather.hourly.'.$today;
 
         // Récupère le cache existant
         $cacheItem = $this->cache->getItem($cacheKey);
@@ -202,8 +206,6 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         return $result;
     }
 
-
-
     private function iconFromCode(string $code): array
     {
         return match (substr($code, 0, 2)) {
@@ -221,6 +223,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     private function logUnknownSymbol(string $code): array
     {
         $this->logger->warning("Unrecognized symbol code for OpenWeather : $code");
+
         return ['emoji' => '🌡️', 'icon' => 'wi wi-na'];
     }
 }
