@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service\Forecast;
 
 use App\Dto\ForecastData;
@@ -9,7 +11,9 @@ class ForecastAggregator
     /**
      * @param iterable<ForecastProviderInterface> $providers
      */
-    public function __construct(private iterable $providers) {}
+    public function __construct(private iterable $providers)
+    {
+    }
 
     /**
      * @return ForecastData[]
@@ -20,6 +24,7 @@ class ForecastAggregator
         foreach ($this->providers as $provider) {
             $all = array_merge($all, $provider->getForecast());
         }
+
         return $all;
     }
 }

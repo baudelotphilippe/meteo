@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service\HourlyForecast;
 
 class HourlyForecastAggregator
@@ -7,7 +9,9 @@ class HourlyForecastAggregator
     /**
      * @param iterable<HourlyForecastProviderInterface> $providers
      */
-    public function __construct(private iterable $providers) {}
+    public function __construct(private iterable $providers)
+    {
+    }
 
     public function getAll(): array
     {

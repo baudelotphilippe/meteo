@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service\Weather;
 
-use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use App\Dto\WeatherData;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 #[AutoconfigureTag('app.weather_provider')]
 interface WeatherProviderInterface

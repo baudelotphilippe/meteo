@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Dto;
 
 class WeatherData
@@ -14,6 +16,7 @@ class WeatherData
         public string $logoUrl,
         public string $sourceUrl,
         public ?string $icon,
-        public bool $enabled = true
-    ) {}
+        public bool $enabled = true,
+    ) {
+    }
 }
