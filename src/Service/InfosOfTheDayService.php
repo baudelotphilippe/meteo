@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Config\CityCoordinates;
+use App\Config\LocationCoordinatesInterface;
 
 class InfosOfTheDayService
 {
@@ -17,17 +17,7 @@ class InfosOfTheDayService
         $this->today = new \DateTimeImmutable('today', $this->tz);
     }
 
-    private function ephemeride()
-    {
-        $sun = date_sun_info($this->today->getTimestamp(), CityCoordinates::LAT, CityCoordinates::LON);
-
-        return [
-            'sunrise' => (new \DateTime("@{$sun['sunrise']}"))->setTimezone($this->tz)->format('G\hi'),
-            'sunset' => (new \DateTime("@{$sun['sunset']}"))->setTimezone($this->tz)->format('G\hi'),
-        ];
-    }
-
-    public function getInfosOfTheDay(): array
+    public function getInfosOfTheDay(LocationCoordinatesInterface $locationCoordinates): array
     {
         $formatter = new \IntlDateFormatter(
             'fr_FR',
@@ -38,6 +28,16 @@ class InfosOfTheDayService
             'EEEE d MMMM y'
         );
 
-        return ['date' => $formatter->format($this->today), 'ephemeride' => $this->ephemeride()];
+        return ['date' => $formatter->format($this->today), 'ephemeride' => $this->ephemeride($locationCoordinates)];
+    }
+
+    private function ephemeride(LocationCoordinatesInterface $locationCoordinates)
+    {
+        $sun = date_sun_info($this->today->getTimestamp(), $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+
+        return [
+            'sunrise' => (new \DateTime("@{$sun['sunrise']}"))->setTimezone($this->tz)->format('G\hi'),
+            'sunset' => (new \DateTime("@{$sun['sunset']}"))->setTimezone($this->tz)->format('G\hi'),
+        ];
     }
 }

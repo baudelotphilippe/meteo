@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Weather;
 
+use App\Config\LocationCoordinatesInterface;
 use App\Dto\WeatherData;
 
 class WeatherAggregator
@@ -18,12 +19,12 @@ class WeatherAggregator
     /**
      * @return WeatherData[]
      */
-    public function getAll(): array
+    public function getAll(LocationCoordinatesInterface $locationCoordinates): array
     {
         $results = [];
 
         foreach ($this->providers as $provider) {
-            $results[] = $provider->getWeather();
+            $results[] = $provider->getWeather($locationCoordinates);
         }
 
         return $results;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\ApiSources;
 
-use App\Config\CityCoordinates;
+use App\Config\LocationCoordinatesInterface;
 use App\Dto\ForecastData;
 use App\Dto\HourlyForecastData;
 use App\Dto\WeatherData;
@@ -33,7 +33,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
     ) {
     }
 
-    public function getWeather(): WeatherData
+    public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
         if (empty($this->apiKey)) {
             throw new \RuntimeException('Clé API WeatherApi absente.');
@@ -47,7 +47,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                 $response = $this->client->request('GET', $this->endpointWeather, [
                     'query' => [
                         'key' => $this->apiKey,
-                        'q' => 'Poitiers',
+                        'q' => $locationCoordinates->getName(),
                         'lang' => 'fr',
                     ],
                 ]);
@@ -89,7 +89,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         return $weather;
     }
 
-    public function getForecast(): array
+    public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
         $cacheKey = 'weatherapi.forecast';
         $item = $this->cache->getItem($cacheKey);
@@ -99,7 +99,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                 $response = $this->client->request('GET', $this->endpointForecast, [
                     'query' => [
                         'key' => $this->apiKey,
-                        'q' => CityCoordinates::CITY,
+                        'q' => $locationCoordinates->getName(),
                         'days' => 3,
                         'lang' => 'fr',
                     ],
