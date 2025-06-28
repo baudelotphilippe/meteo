@@ -19,7 +19,12 @@ class WeatherController extends AbstractController
     #[Route('/', name: 'weather')]
     public function meteo(WeatherAggregator $weather_aggregator, ForecastAggregator $forecast_aggregator, HourlyForecastAggregator $hourly_forecast_aggregator, InfosOfTheDayService $infos_of_the_day_service): Response
     {
-        $locationCoordinates = new LocationCoordinates('Poitiers', 46.58, 0.34);
+        $locationCoordinates = new LocationCoordinates(
+            $this->getParameter('meteo_name'),
+            $this->getParameter('meteo_latitude'),
+            $this->getParameter('meteo_longitude')
+        );
+
         $forecastRows = [];
 
         foreach ($forecast_aggregator->getAll($locationCoordinates) as $forecast) {
