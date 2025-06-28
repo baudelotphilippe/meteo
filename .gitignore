@@ -26,6 +26,4 @@
 
 .DS_Store
 **/.DS_Store
-###> phpstan/phpstan ###
-phpstan.neon
-###< phpstan/phpstan ###
+
