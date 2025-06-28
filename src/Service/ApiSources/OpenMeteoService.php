@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\ApiSources;
 
-use App\Config\CityCoordinates;
+use App\Config\LocationCoordinatesInterface;
 use App\Dto\ForecastData;
 use App\Dto\HourlyForecastData;
 use App\Dto\WeatherData;
@@ -31,7 +31,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
     ) {
     }
 
-    public function getWeather(): WeatherData
+    public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
         $cacheKey = 'openmeteo.current';
         $item = $this->cache->getItem($cacheKey);
@@ -40,8 +40,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
             try {
                 $data = $this->client->request('GET', $this->endpoint, [
                     'query' => [
-                        'latitude' => CityCoordinates::LAT,
-                        'longitude' => CityCoordinates::LON,
+                        'latitude' => $locationCoordinates->getLatitude(),
+                        'longitude' => $locationCoordinates->getLongitude(),
                         'current_weather' => true,
                         'hourly' => 'relative_humidity_2m',
                         'timezone' => 'auto',
@@ -88,7 +88,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         return $weather;
     }
 
-    public function getForecast(): array
+    public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
         $cacheKey = 'openmeteo.forecast';
         $item = $this->cache->getItem($cacheKey);
@@ -97,8 +97,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
             try {
                 $response = $this->client->request('GET', $this->endpoint, [
                     'query' => [
-                        'latitude' => CityCoordinates::LAT,
-                        'longitude' => CityCoordinates::LON,
+                        'latitude' => $locationCoordinates->getLatitude(),
+                        'longitude' => $locationCoordinates->getLongitude(),
                         'daily' => 'temperature_2m_min,temperature_2m_max,weathercode',
                         'hourly' => 'temperature_2m,weathercode',
                         'timezone' => 'auto',

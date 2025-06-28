@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\ApiSources;
 
-use App\Config\CityCoordinates;
+use App\Config\LocationCoordinatesInterface;
 use App\Dto\ForecastData;
 use App\Dto\HourlyForecastData;
 use App\Dto\WeatherData;
@@ -34,7 +34,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     ) {
     }
 
-    public function getWeather(): WeatherData
+    public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
         if (empty($this->apiKey)) {
             throw new \RuntimeException('Clé API OpenWeather absente.');
@@ -47,7 +47,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
             try {
                 $data = $this->client->request('GET', $this->endpointWeather, [
                     'query' => [
-                        'q' => CityCoordinates::CITY,
+                        'q' => $locationCoordinates->getName(),
                         'appid' => $this->apiKey,
                         'units' => 'metric',
                         'lang' => 'fr',
@@ -90,7 +90,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         return $weather;
     }
 
-    public function getForecast(): array
+    public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
         $cacheKey = 'openweather.forecast';
         $item = $this->cache->getItem($cacheKey);
@@ -99,8 +99,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
             try {
                 $response = $this->client->request('GET', $this->endpointForecast, [
                     'query' => [
-                        'lat' => CityCoordinates::LAT,
-                        'lon' => CityCoordinates::LON,
+                        'lat' => $locationCoordinates->getLatitude(),
+                        'lon' => $locationCoordinates->getLongitude(),
                         'units' => 'metric',
                         'lang' => 'fr',
                         'appid' => $this->apiKey,

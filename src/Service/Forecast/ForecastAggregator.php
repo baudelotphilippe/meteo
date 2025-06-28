@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Forecast;
 
+use App\Config\LocationCoordinatesInterface;
 use App\Dto\ForecastData;
 
 class ForecastAggregator
@@ -18,11 +19,11 @@ class ForecastAggregator
     /**
      * @return ForecastData[]
      */
-    public function getAll(): array
+    public function getAll(LocationCoordinatesInterface $locationCoordinates): array
     {
         $all = [];
         foreach ($this->providers as $provider) {
-            $all = array_merge($all, $provider->getForecast());
+            $all = array_merge($all, $provider->getForecast($locationCoordinates));
         }
 
         return $all;
