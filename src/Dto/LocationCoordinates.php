@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Config;
+namespace App\Dto;
 
 class LocationCoordinates implements LocationCoordinatesInterface
 {
@@ -10,6 +10,7 @@ class LocationCoordinates implements LocationCoordinatesInterface
         private readonly string $name,
         private readonly float $latitude,
         private readonly float $longitude,
+        private readonly string $timezone ="Europe/Paris",
     ) {
     }
 
@@ -26,5 +27,10 @@ class LocationCoordinates implements LocationCoordinatesInterface
     public function getLongitude(): float
     {
         return $this->longitude;
+    }
+
+    public function getTimezone(): string
+    {
+        return $this->timezone;
     }
 }

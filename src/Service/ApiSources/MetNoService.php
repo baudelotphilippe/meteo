@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service\ApiSources;
 
-use App\Config\LocationCoordinatesInterface;
 use App\Dto\ForecastData;
+use App\Dto\LocationCoordinatesInterface;
 use App\Dto\WeatherData;
 use App\Service\Forecast\ForecastProviderInterface;
 use App\Service\HourlyForecast\HourlyForecastProviderInterface;

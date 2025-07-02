@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Config\LocationCoordinates;
+use App\Dto\LocationCoordinates;
 use App\Service\Forecast\ForecastAggregator;
 use App\Service\HourlyForecast\HourlyForecastAggregator;
 use App\Service\InfosOfTheDayService;
@@ -22,7 +22,8 @@ class WeatherController extends AbstractController
         $locationCoordinates = new LocationCoordinates(
             $this->getParameter('meteo_name'),
             $this->getParameter('meteo_latitude'),
-            $this->getParameter('meteo_longitude')
+            $this->getParameter('meteo_longitude'),
+            $this->getParameter('meteo_timezone')
         );
 
         $forecastRows = [];

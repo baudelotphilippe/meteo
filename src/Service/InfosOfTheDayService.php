@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Config\LocationCoordinatesInterface;
+use App\Dto\LocationCoordinatesInterface;
 
 class InfosOfTheDayService
 {

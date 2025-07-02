@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Weather;
 
-use App\Config\LocationCoordinatesInterface;
+use App\Dto\LocationCoordinatesInterface;
 use App\Dto\WeatherData;
 
 class WeatherAggregator

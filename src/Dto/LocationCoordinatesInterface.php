@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Config;
+namespace App\Dto;
 
 interface LocationCoordinatesInterface
 {
@@ -11,4 +11,6 @@ interface LocationCoordinatesInterface
     public function getLatitude(): float;
 
     public function getLongitude(): float;
+
+    public function getTimezone(): string;
 }
