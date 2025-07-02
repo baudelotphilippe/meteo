@@ -9,6 +9,8 @@ parameters:
     meteo_name: '%env(METEO_NAME)%'
     meteo_latitude: '%env(float:METEO_LATITUDE)%'
     meteo_longitude: '%env(float:METEO_LONGITUDE)%'
+    meteo_timezone: '%env(METEO_TIMEZONE)%'
+
     app.your_float_parameter: '%env(float:YOUR_FLOAT_PARAMETER)%'
 
 services:
