@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace App\Service\ApiSources;
 
-use App\Dto\ForecastData;
-use App\Dto\HourlyForecastData;
-use App\Dto\LocationCoordinatesInterface;
 use App\Dto\WeatherData;
-use App\Service\Forecast\ForecastProviderInterface;
-use App\Service\HourlyForecast\HourlyForecastProviderInterface;
-use App\Service\Weather\WeatherProviderInterface;
-use Psr\Cache\CacheItemPoolInterface;
+use App\Dto\ForecastData;
+use App\ValueObject\Time;
 use Psr\Log\LoggerInterface;
+use App\Dto\HourlyForecastData;
+use Psr\Cache\CacheItemPoolInterface;
+use App\Dto\LocationCoordinatesInterface;
+use App\Service\Weather\WeatherProviderInterface;
+use App\Service\Forecast\ForecastProviderInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use App\Service\HourlyForecast\HourlyForecastProviderInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 
 class OpenWeatherService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
@@ -31,8 +32,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         private string $apiKey,
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
-    ) {
-    }
+    ) {}
 
     public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
@@ -68,8 +68,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 $item->set($weather);
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
-            } catch (ClientExceptionInterface|TransportExceptionInterface $e) {
-                $this->logger->error('Erreur API OpenWeather Met.no : '.$e->getMessage());
+            } catch (ClientExceptionInterface | TransportExceptionInterface $e) {
+                $this->logger->error('Erreur API OpenWeather Met.no : ' . $e->getMessage());
                 $weather = new WeatherData(
                     provider: 'OpenWeather',
                     temperature: 0,
@@ -119,8 +119,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 $forecasts = [];
 
                 foreach (array_slice($grouped, 0, 7, true) as $day => $entries) {
-                    $temps = array_map(fn ($e) => $e['main']['temp'], $entries);
-                    $descFreq = array_count_values(array_map(fn ($e) => $e['weather'][0]['description'], $entries));
+                    $temps = array_map(fn($e) => $e['main']['temp'], $entries);
+                    $descFreq = array_count_values(array_map(fn($e) => $e['weather'][0]['description'], $entries));
                     arsort($descFreq);
                     $mainDesc = array_key_first($descFreq);
 
@@ -140,12 +140,12 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
-                TransportExceptionInterface|
-                ClientExceptionInterface|
-                ServerExceptionInterface|
+                TransportExceptionInterface |
+                ClientExceptionInterface |
+                ServerExceptionInterface |
                 RedirectionExceptionInterface $e
             ) {
-                $this->logger->error('Erreur API Met.no : '.$e->getMessage());
+                $this->logger->error('Erreur API Met.no : ' . $e->getMessage());
                 $forecasts = [];
             }
         } else {
@@ -161,7 +161,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     {
         $today = (new \DateTimeImmutable())->format('Y-m-d');
         $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
-        $cacheKey = 'openweather.hourly.'.$today;
+        $cacheKey = 'openweather.hourly.' . $today;
 
         // Récupère le cache existant
         $cacheItem = $this->cache->getItem($cacheKey);
@@ -194,13 +194,17 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
         // Conversion en HourlyForecastData[]
         foreach ($stored as $time => $data) {
-            $result[] = new HourlyForecastData(
-                provider: 'OpenWeather',
-                time: $time,
-                temperature: $data['temp'],
-                description: $data['desc'],
-                emoji: $this->iconFromCode($data['icon'])['emoji']
-            );
+            try {
+                $result[] = new HourlyForecastData(
+                    provider: 'OpenWeather',
+                    time: new Time($time),
+                    temperature: $data['temp'],
+                    description: $data['desc'],
+                    emoji: $this->iconFromCode($data['icon'])['emoji']
+                );
+            } catch (\InvalidArgumentException $e) {
+                $this->logger->error("erreur :" . $e->getMessage());
+            }
         }
 
         return $result;

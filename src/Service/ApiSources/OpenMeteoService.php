@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace App\Service\ApiSources;
 
-use App\Dto\ForecastData;
-use App\Dto\HourlyForecastData;
-use App\Dto\LocationCoordinatesInterface;
 use App\Dto\WeatherData;
-use App\Service\Forecast\ForecastProviderInterface;
-use App\Service\HourlyForecast\HourlyForecastProviderInterface;
-use App\Service\Weather\WeatherProviderInterface;
-use Psr\Cache\CacheItemPoolInterface;
+use App\Dto\ForecastData;
+use App\ValueObject\Time;
 use Psr\Log\LoggerInterface;
+use App\Dto\HourlyForecastData;
+use Psr\Cache\CacheItemPoolInterface;
+use App\Dto\LocationCoordinatesInterface;
+use App\Service\Weather\WeatherProviderInterface;
+use App\Service\Forecast\ForecastProviderInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use App\Service\HourlyForecast\HourlyForecastProviderInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 
 class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
@@ -28,8 +29,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         private HttpClientInterface $client,
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
-    ) {
-    }
+    ) {}
 
     public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
@@ -67,7 +67,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
             } catch (TransportExceptionInterface $e) {
-                $this->logger->error('Erreur API Weather OpenMeteo : '.$e->getMessage());
+                $this->logger->error('Erreur API Weather OpenMeteo : ' . $e->getMessage());
                 $weather = new WeatherData(
                     provider: 'Open-Meteo',
                     temperature: 0,
@@ -125,8 +125,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
-            } catch (TransportExceptionInterface|ClientExceptionInterface|ServerExceptionInterface|RedirectionExceptionInterface $e) {
-                $this->logger->error('Erreur API Prévisions OpenMeteo : '.$e->getMessage());
+            } catch (TransportExceptionInterface | ClientExceptionInterface | ServerExceptionInterface | RedirectionExceptionInterface $e) {
+                $this->logger->error('Erreur API Prévisions OpenMeteo : ' . $e->getMessage());
                 $forecasts = [];
             }
         } else {
@@ -157,13 +157,17 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
             if (($date === $today) || (($date === $tomorrow) && ($time === '0h'))) {
                 $time = ($date === $tomorrow) ? '24h' : $time;
                 $info = $this->getWeatherInfo($this->hourlyToday['weathercode'][$i]);
-                $result[] = new HourlyForecastData(
-                    provider: 'Open-Meteo',
-                    time: $time,
-                    temperature: $this->hourlyToday['temperature_2m'][$i],
-                    description: $info['label'],
-                    emoji: $info['emoji'],
-                );
+                try {
+                    $result[] = new HourlyForecastData(
+                        provider: 'Open-Meteo',
+                        time: new Time($time),
+                        temperature: $this->hourlyToday['temperature_2m'][$i],
+                        description: $info['label'],
+                        emoji: $info['emoji'],
+                    );
+                } catch (\InvalidArgumentException $e) {
+                    $this->logger->error("erreur :" . $e->getMessage());
+                }
             }
         }
 

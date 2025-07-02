@@ -4,28 +4,27 @@ declare(strict_types=1);
 
 namespace App\Service\ApiSources;
 
-use App\Dto\ForecastData;
-use App\Dto\LocationCoordinatesInterface;
 use App\Dto\WeatherData;
-use App\Service\Forecast\ForecastProviderInterface;
-use App\Service\HourlyForecast\HourlyForecastProviderInterface;
-use App\Service\Weather\WeatherProviderInterface;
-use Psr\Cache\CacheItemPoolInterface;
+use App\Dto\ForecastData;
+use App\ValueObject\Time;
 use Psr\Log\LoggerInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use App\Dto\LocationCoordinatesInterface;
+use App\Service\Weather\WeatherProviderInterface;
+use App\Service\Forecast\ForecastProviderInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use App\Service\HourlyForecast\HourlyForecastProviderInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 
 class MetNoService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
     private string $endpoint = 'https://api.met.no/weatherapi/locationforecast/2.0/compact';
     private array $hourlyToday = [];
 
-    public function __construct(private HttpClientInterface $client, private LoggerInterface $logger, private CacheItemPoolInterface $cache)
-    {
-    }
+    public function __construct(private HttpClientInterface $client, private LoggerInterface $logger, private CacheItemPoolInterface $cache) {}
 
     public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
@@ -66,7 +65,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
             } catch (TransportExceptionInterface $e) {
-                $this->logger->error('Erreur API Weather Met.no : '.$e->getMessage());
+                $this->logger->error('Erreur API Weather Met.no : ' . $e->getMessage());
                 $weather = new WeatherData(
                     provider: 'Met.no',
                     temperature: 0,
@@ -202,12 +201,12 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
-                TransportExceptionInterface|
-                ClientExceptionInterface|
-                ServerExceptionInterface|
+                TransportExceptionInterface |
+                ClientExceptionInterface |
+                ServerExceptionInterface |
                 RedirectionExceptionInterface $e
             ) {
-                $this->logger->error('Erreur API Previsions Met.no : '.$e->getMessage());
+                $this->logger->error('Erreur API Previsions Met.no : ' . $e->getMessage());
                 $forecasts = [];
             }
         } else {
@@ -223,7 +222,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
     {
         $today = (new \DateTimeImmutable())->format('Y-m-d');
         $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
-        $cacheKey = 'metno.hourly.'.$today;
+        $cacheKey = 'metno.hourly.' . $today;
 
         // Récupère le cache existant
         $cacheItem = $this->cache->getItem($cacheKey);
@@ -263,13 +262,17 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         // Conversion en objets HourlyForecastData
         $result = [];
         foreach ($stored as $time => $data) {
-            $result[] = new \App\Dto\HourlyForecastData(
-                provider: 'Met.no',
-                time: $time,
-                temperature: $data['temp'],
-                description: $data['desc'],
-                emoji: $data['emoji'],
-            );
+            try {
+                $result[] = new \App\Dto\HourlyForecastData(
+                    provider: 'Met.no',
+                    time: new Time($time),
+                    temperature: $data['temp'],
+                    description: $data['desc'],
+                    emoji: $data['emoji'],
+                );
+            } catch (\InvalidArgumentException $e) {
+                $this->logger->error("erreur :" . $e->getMessage());
+            }
         }
 
         return $result;
