@@ -6,6 +6,10 @@
 parameters:
     openweather.api_key: '%env(OPENWEATHER_API_KEY)%'
     weatherapi.key: '%env(WEATHERAPI_KEY)%'
+    meteo_name: '%env(METEO_NAME)%'
+    meteo_latitude: '%env(float:METEO_LATITUDE)%'
+    meteo_longitude: '%env(float:METEO_LONGITUDE)%'
+    app.your_float_parameter: '%env(float:YOUR_FLOAT_PARAMETER)%'
 
 services:
     # default configuration for services in *this* file
