@@ -216,7 +216,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         return $map[$code] ?? $this->logUnknownSymbol($code);
     }
 
-    private function logUnknownSymbol(string $code): array
+    private function logUnknownSymbol(int $code): array
     {
         $this->logger->warning("Unrecognized symbol code for OpenMeteo : $code");
 

@@ -14,7 +14,7 @@ class HourlyForecastAggregator
     }
 
     /**
-     * @return HourlyForecastData[]
+     * @return array<int|string, list>
      */
     public function getAll(): array
     {
