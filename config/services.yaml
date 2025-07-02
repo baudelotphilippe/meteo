@@ -11,7 +11,6 @@ parameters:
     meteo_longitude: '%env(float:METEO_LONGITUDE)%'
     meteo_timezone: '%env(METEO_TIMEZONE)%'
 
-    app.your_float_parameter: '%env(float:YOUR_FLOAT_PARAMETER)%'
 
 services:
     # default configuration for services in *this* file
