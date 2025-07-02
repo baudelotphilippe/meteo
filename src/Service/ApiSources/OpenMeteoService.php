@@ -93,7 +93,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         $cacheKey = 'openmeteo.forecast';
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit() or 1) {
+        if (!$item->isHit()) {
             try {
                 $response = $this->client->request('GET', $this->endpoint, [
                     'query' => [
@@ -106,7 +106,6 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 ]);
 
                 $data = $response->toArray();
-                dump($data);
                 $this->hourlyData = $data['hourly'];
                 // $this->logger->info(print_r($data['hourly']));
 
