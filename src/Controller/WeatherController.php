@@ -16,8 +16,12 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class WeatherController extends AbstractController
 {
+    public function __construct(private WeatherAggregator $weather_aggregator, private ForecastAggregator $forecast_aggregator, private HourlyForecastAggregator $hourly_forecast_aggregator, private InfosOfTheDayService $infos_of_the_day_service)
+    {       
+    }
+    
     #[Route('/', name: 'weather')]
-    public function meteo(WeatherAggregator $weather_aggregator, ForecastAggregator $forecast_aggregator, HourlyForecastAggregator $hourly_forecast_aggregator, InfosOfTheDayService $infos_of_the_day_service): Response
+    public function meteo(): Response
     {
         $locationCoordinates = new LocationCoordinates(
             $this->getParameter('meteo_name'),
@@ -28,13 +32,13 @@ class WeatherController extends AbstractController
 
         $forecastRows = [];
 
-        foreach ($forecast_aggregator->getAll($locationCoordinates) as $forecast) {
+        foreach ($this->forecast_aggregator->getAll($locationCoordinates) as $forecast) {
             $provider = $forecast->provider;
             $forecastRows[$provider][] = $forecast;
         }
 
         $chartsData = [];
-        foreach ($hourly_forecast_aggregator->getAll() as $provider => $hourlyData) {
+        foreach ($this->hourly_forecast_aggregator->getAll() as $provider => $hourlyData) {
             $chartsData[$provider] = [
                 'labels' => array_map(fn ($h) => $h->time, $hourlyData),
                 'temperatures' => array_map(fn ($h) => $h->temperature, $hourlyData),
@@ -46,18 +50,10 @@ class WeatherController extends AbstractController
             'meteo.html.twig',
             [
                 'location' => $locationCoordinates,
-                'infosDay' => $infos_of_the_day_service->getInfosOfTheDay($locationCoordinates),
-                'sources' => $weather_aggregator->getAll($locationCoordinates),
+                'infosDay' => $this->infos_of_the_day_service->getInfosOfTheDay($locationCoordinates),
+                'sources' => $this->weather_aggregator->getAll($locationCoordinates),
                 'forecastRows' => $forecastRows,
                 'todayHourly' => $chartsData]
         );
-    }
-
-    #[Route('/clear-cache', name: 'clear-cache')]
-    public function clearstatcache(CacheItemPoolInterface $cache): Response
-    {
-        $cache->clear();
-
-        return new Response('ok');
     }
 }
