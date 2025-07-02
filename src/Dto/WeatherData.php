@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
-class WeatherData
+final class WeatherData
 {
     public function __construct(
         public string $provider,

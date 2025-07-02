@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
-class ForecastData
+final class ForecastData
 {
     public function __construct(
         public string $provider,

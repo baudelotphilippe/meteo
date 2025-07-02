@@ -184,7 +184,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
                     $temps = array_column($dataList, 'temp');
                     $symbols = array_column($dataList, 'symbol');
-                    $symbol = $symbols[(int)round(count($symbols) / 2)] ?? null;
+                    $symbol = $symbols[(int) round(count($symbols) / 2)] ?? null;
                     $displayMeteo = $this->getSymbolMeta($symbol);
 
                     $forecasts[] = new ForecastData(

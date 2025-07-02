@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
-class HourlyForecastData
+final class HourlyForecastData
 {
     public function __construct(
         public string $provider,
