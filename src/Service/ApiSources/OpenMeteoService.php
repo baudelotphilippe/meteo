@@ -93,7 +93,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         $cacheKey = 'openmeteo.forecast';
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+        if (!$item->isHit() or 1) {
             try {
                 $response = $this->client->request('GET', $this->endpoint, [
                     'query' => [
@@ -106,6 +106,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 ]);
 
                 $data = $response->toArray();
+                dump($data);
                 $this->hourlyData = $data['hourly'];
                 // $this->logger->info(print_r($data['hourly']));
 
@@ -216,7 +217,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         return $map[$code] ?? $this->logUnknownSymbol($code);
     }
 
-    private function logUnknownSymbol(string $code): array
+    private function logUnknownSymbol(int $code): array
     {
         $this->logger->warning("Unrecognized symbol code for OpenMeteo : $code");
 
