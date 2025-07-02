@@ -22,7 +22,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
     private string $endpoint = 'https://api.open-meteo.com/v1/forecast';
-    private array $hourlyData = [];
+    private array $hourlyToday = [];
 
     public function __construct(
         private HttpClientInterface $client,
@@ -106,7 +106,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 ]);
 
                 $data = $response->toArray();
-                $this->hourlyData = $data['hourly'];
+                $this->hourlyToday = $data['hourly'];
                 // $this->logger->info(print_r($data['hourly']));
 
                 $forecasts = [];
@@ -122,7 +122,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                         emoji: $info['emoji'],
                     );
                 }
-                $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyData]);
+                $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (TransportExceptionInterface|ClientExceptionInterface|ServerExceptionInterface|RedirectionExceptionInterface $e) {
@@ -132,7 +132,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         } else {
             $infos = $item->get();
             $forecasts = $infos['forecast'];
-            $this->hourlyData = $infos['todayHourly'];
+            $this->hourlyToday = $infos['todayHourly'];
         }
 
         return $forecasts;
@@ -140,7 +140,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
     public function getTodayHourly(): array
     {
-        if (empty($this->hourlyData)) {
+        if (empty($this->hourlyToday)) {
             return []; // getForecast() n’a pas encore été appelé
         }
 
@@ -149,18 +149,18 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
         $result = [];
 
-        foreach ($this->hourlyData['time'] as $i => $iso) {
+        foreach ($this->hourlyToday['time'] as $i => $iso) {
             $dt = new \DateTimeImmutable($iso);
             $date = $dt->format('Y-m-d');
             $time = $dt->format('G\h');
 
             if (($date === $today) || (($date === $tomorrow) && ($time === '0h'))) {
                 $time = ($date === $tomorrow) ? '24h' : $time;
-                $info = $this->getWeatherInfo($this->hourlyData['weathercode'][$i]);
+                $info = $this->getWeatherInfo($this->hourlyToday['weathercode'][$i]);
                 $result[] = new HourlyForecastData(
                     provider: 'Open-Meteo',
                     time: $time,
-                    temperature: $this->hourlyData['temperature_2m'][$i],
+                    temperature: $this->hourlyToday['temperature_2m'][$i],
                     description: $info['label'],
                     emoji: $info['emoji'],
                 );
