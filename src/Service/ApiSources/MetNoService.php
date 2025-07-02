@@ -215,7 +215,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
             $forecasts = $infos['forecast'];
             $this->hourlyToday = $infos['todayHourly'];
         }
-dump($this->hourlyToday);
+
         return $forecasts;
     }
 
