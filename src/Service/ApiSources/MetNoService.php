@@ -37,7 +37,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $response = $this->client->request('GET', $this->endpoint, [
                     'query' => [
                         'lat' => $locationCoordinates->getLatitude(),
-                        'lon' => $locationCoordinates->getLatitude(),
+                        'lon' => $locationCoordinates->getLongitude(),
                     ],
                     'headers' => [
                         'User-Agent' => 'MonProjetMeteo/1.0 (mon.email@exemple.com)',
