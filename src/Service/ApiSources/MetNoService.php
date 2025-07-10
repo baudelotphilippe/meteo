@@ -29,7 +29,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
     public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
-        $cacheKey = 'met.current';
+        $cacheKey = 'met.current' . sprintf("%.6f_%.6f", $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
@@ -133,7 +133,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
-        $cacheKey = 'met.forecast';
+        $cacheKey = 'met.forecast' . sprintf("%.6f_%.6f", $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {

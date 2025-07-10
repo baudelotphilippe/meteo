@@ -40,7 +40,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
             throw new \RuntimeException('Clé API OpenWeather absente.');
         }
 
-        $cacheKey = 'openweather.current';
+        $cacheKey = 'openweather.current' . sprintf("%.6f_%.6f", $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
@@ -92,7 +92,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
-        $cacheKey = 'openweather.forecast';
+        $cacheKey = 'openweather.forecast' . sprintf("%.6f_%.6f", $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {

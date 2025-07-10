@@ -39,7 +39,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             throw new \RuntimeException('Clé API WeatherApi absente.');
         }
 
-        $cacheKey = 'weatherapi.current';
+        $cacheKey = 'weatherapi.current' . sprintf("%.6f_%.6f", $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
@@ -91,7 +92,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
 
     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
-        $cacheKey = 'weatherapi.forecast';
+        $cacheKey = 'weatherapi.forecast' . sprintf("%.6f_%.6f", $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {

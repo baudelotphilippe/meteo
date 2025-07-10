@@ -33,7 +33,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
     public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
-        $cacheKey = 'openmeteo.current';
+        $cacheKey = 'openmeteo.current' . sprintf("%.6f_%.6f", $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
@@ -90,7 +90,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
-        $cacheKey = 'openmeteo.forecast';
+        $cacheKey = 'openmeteo.forecast' . sprintf("%.6f_%.6f", $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
