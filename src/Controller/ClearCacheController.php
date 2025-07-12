@@ -11,7 +11,6 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class ClearCacheController extends AbstractController
 {
-   
     #[Route('/clear-cache', name: 'clear-cache')]
     public function clearstatcache(CacheItemPoolInterface $cache): Response
     {

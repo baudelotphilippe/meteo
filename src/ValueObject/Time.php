@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace App\ValueObject;
 
-use DateTimeImmutable;
-
 final class Time
 {
-
     private \DateTimeImmutable $date;
     private const TIME_FORMAT = "G\h";
 
@@ -16,7 +13,7 @@ final class Time
     {
         $testDate = \DateTimeImmutable::createFromFormat(self::TIME_FORMAT, $date);
         if (!$testDate) {
-            throw new \InvalidArgumentException("Invalid time format. Expected:" . self::TIME_FORMAT);
+            throw new \InvalidArgumentException('Invalid time format. Expected:'.self::TIME_FORMAT);
         }
         $this->date = $testDate;
     }

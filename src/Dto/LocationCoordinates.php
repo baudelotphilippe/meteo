@@ -10,7 +10,7 @@ class LocationCoordinates implements LocationCoordinatesInterface
         private readonly string $name,
         private readonly float $latitude,
         private readonly float $longitude,
-        private readonly string $timezone ="Europe/Paris",
+        private readonly string $timezone = 'Europe/Paris',
     ) {
     }
 

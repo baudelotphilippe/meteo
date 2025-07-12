@@ -10,9 +10,7 @@ use App\Service\Geocode\GeocodeService;
 use App\Service\HourlyForecast\HourlyForecastAggregator;
 use App\Service\InfosOfTheDayService;
 use App\Service\Weather\WeatherAggregator;
-use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -21,7 +19,7 @@ class WeatherController extends AbstractController
     public function __construct(private WeatherAggregator $weather_aggregator, private ForecastAggregator $forecast_aggregator, private HourlyForecastAggregator $hourly_forecast_aggregator, private InfosOfTheDayService $infos_of_the_day_service)
     {
     }
-    
+
     #[Route('/', name: 'weather', defaults: ['location' => null])]
     #[Route('/location/{location}', name: 'weather_location')]
     public function meteo(?string $location, GeocodeService $geocodeService): Response
@@ -36,9 +34,6 @@ class WeatherController extends AbstractController
                 $this->getParameter('meteo_timezone')
             );
         }
-
-
-
 
         $forecastRows = [];
 
