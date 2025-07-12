@@ -4,6 +4,12 @@ if (!file_exists(__DIR__ . '/src')) {
     exit(0);
 }
 
+$finder = PhpCsFixer\Finder::create()
+    ->in(__DIR__ . '/src')
+    ->name('*.php')
+    ->exclude('var') // si tu veux exclure un dossier
+;
+
 return (new PhpCsFixer\Config())
     ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect())
     ->setRules([
@@ -21,6 +27,7 @@ return (new PhpCsFixer\Config())
             ],
         ]
     ])
+    ->setFinder($finder)
     ->setRiskyAllowed(true)
     ->setCacheFile('.php-cs-fixer.cache')
     ;
