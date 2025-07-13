@@ -31,8 +31,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         private string $apiKey,
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
-    ) {
-    }
+    ) {}
 
     public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
@@ -40,7 +39,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             throw new \RuntimeException('Clé API WeatherApi absente.');
         }
 
-        $cacheKey = 'weatherapi.current'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+        $cacheKey = 'weatherapi.current' . sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
 
         $item = $this->cache->getItem($cacheKey);
 
@@ -69,8 +68,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                 $item->set($weather);
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
-            } catch (ClientExceptionInterface|TransportExceptionInterface $e) {
-                $this->logger->error('Erreur API WeatherAPI Met.no : '.$e->getMessage());
+            } catch (ClientExceptionInterface | TransportExceptionInterface $e) {
+                $this->logger->error('Erreur API WeatherAPI Met.no : ' . $e->getMessage());
                 $weather = new WeatherData(
                     provider: 'WeatherAPI',
                     temperature: 0,
@@ -93,7 +92,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
 
     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
-        $cacheKey = 'weatherapi.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+        $cacheKey = 'weatherapi.forecast' . sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
@@ -128,12 +127,12 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
-                TransportExceptionInterface|
-                ClientExceptionInterface|
-                ServerExceptionInterface|
+                TransportExceptionInterface |
+                ClientExceptionInterface |
+                ServerExceptionInterface |
                 RedirectionExceptionInterface $e
             ) {
-                $this->logger->error('Erreur API Prévisions WeatherAPI : '.$e->getMessage());
+                $this->logger->error('Erreur API Prévisions WeatherAPI : ' . $e->getMessage());
 
                 return [];
             }
@@ -152,34 +151,27 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             return [];
         }
 
+        $hour_now = (new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris')))->format('G');
         $result = [];
 
-        // loop for today
-        foreach ($this->hourlyToday[0]['hour'] as $hour) {
-            try {
-                $result[] = new HourlyForecastData(
-                    provider: 'WeatherAPI',
-                    time: new Time((new \DateTimeImmutable($hour['time']))->format('G\h')),
-                    temperature: $hour['temp_c'],
-                    description: $hour['condition']['text'],
-                    emoji: $this->iconFromCondition($hour['condition']['text'])['emoji']
-                );
-            } catch (\InvalidArgumentException $e) {
-                $this->logger->error('erreur :'.$e->getMessage());
+        $infos = ['today' => 0, 'tomorrow' => 1];
+        foreach ($infos as $day => $dayposition) {
+            foreach ($this->hourlyToday[$dayposition]['hour'] as $hour) {
+                $time = (new \DateTimeImmutable($hour['time']))->format('G');
+                if (($day === "today") && ($time >= $hour_now) || ($day === "tomorrow") && ($time < $hour_now)) {
+                    try {
+                        $result[] = new HourlyForecastData(
+                            provider: 'WeatherAPI',
+                            time: new Time($time . "h"),
+                            temperature: $hour['temp_c'],
+                            description: $hour['condition']['text'],
+                            emoji: $this->iconFromCondition($hour['condition']['text'])['emoji']
+                        );
+                    } catch (\InvalidArgumentException $e) {
+                        $this->logger->error('erreur :' . $e->getMessage());
+                    }
+                }
             }
-        }
-        // add tomorrow
-        $tomorrow = $this->hourlyToday[1]['hour'][0];
-        try {
-            $result[] = new HourlyForecastData(
-                provider: 'WeatherAPI',
-                time: new Time('24h'),
-                temperature: $tomorrow['temp_c'],
-                description: $tomorrow['condition']['text'],
-                emoji: $this->iconFromCondition($tomorrow['condition']['text'])['emoji']
-            );
-        } catch (\InvalidArgumentException $e) {
-            $this->logger->error('erreur :'.$e->getMessage());
         }
 
         return $result;

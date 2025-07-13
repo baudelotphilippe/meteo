@@ -162,22 +162,18 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     {
         $today = (new \DateTimeImmutable())->format('Y-m-d');
         $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
-        $cacheKey = 'openweather.hourly.'.$today;
+        $hour_now = (new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris')))->format('G');
 
-        // Récupère le cache existant
-        $cacheItem = $this->cache->getItem($cacheKey);
+        $stored =  [];
 
-        $stored = $cacheItem->isHit() ? $cacheItem->get() : [];
-
-        $result = [];
-
+        
         foreach ($this->hourlyToday as $entry) {
             $dt = new \DateTimeImmutable($entry['dt_txt']);
             $date = $dt->format('Y-m-d');
-            $time = $dt->format('G\h');
-            if ($date === $today || ($date === $tomorrow && $time === '0h')) {
-                $time = ($date === $tomorrow) ? '24h' : $time;
-
+            $time = $dt->format('G');
+            if ($date === $today ||  ($date === $tomorrow && $time < $hour_now)) {
+                $time = $time."h";
+                
                 // ajoute ou écrase
                 $stored[$time] = [
                     'temp' => $entry['main']['temp'],
@@ -186,13 +182,9 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
                 ];
             }
         }
-
-        // Tri par heure pour affichage ordonné
-        ksort($stored);
-        // Sauvegarde mise à jour
-        $cacheItem->set($stored)->expiresAfter(86400); // 24h
-        $this->cache->save($cacheItem);
-
+        
+        
+        $result = [];
         // Conversion en HourlyForecastData[]
         foreach ($stored as $time => $data) {
             try {

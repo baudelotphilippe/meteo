@@ -24,13 +24,11 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
     private string $endpoint = 'https://api.met.no/weatherapi/locationforecast/2.0/compact';
     private array $hourlyToday = [];
 
-    public function __construct(private HttpClientInterface $client, private LoggerInterface $logger, private CacheItemPoolInterface $cache)
-    {
-    }
+    public function __construct(private HttpClientInterface $client, private LoggerInterface $logger, private CacheItemPoolInterface $cache) {}
 
     public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
-        $cacheKey = 'met.current'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+        $cacheKey = 'met.current' . sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
@@ -67,7 +65,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
             } catch (TransportExceptionInterface $e) {
-                $this->logger->error('Erreur API Weather Met.no : '.$e->getMessage());
+                $this->logger->error('Erreur API Weather Met.no : ' . $e->getMessage());
                 $weather = new WeatherData(
                     provider: 'Met.no',
                     temperature: 0,
@@ -88,12 +86,12 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         return $weather;
     }
 
-     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
+    public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
-        $cacheKey = 'met.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+        $cacheKey = 'met.forecast' . sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+       if (!$item->isHit()) {
             try {
                 $response = $this->client->request('GET', $this->endpoint, [
                     'query' => [
@@ -106,6 +104,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 ]);
 
                 $data = $response->toArray();
+                // stock prévisions
                 $this->hourlyToday = $data['properties']['timeseries'];
 
                 $jours = [];
@@ -141,6 +140,8 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
                     $temps = array_column($dataList, 'temp');
                     $symbols = array_column($dataList, 'symbol');
+
+                    // prends au milieu de la journée pour savoir quel symbol utiliser
                     $symbol = $symbols[(int) round(count($symbols) / 2)] ?? null;
                     $displayMeteo = $this->getSymbolMeta($symbol);
 
@@ -159,12 +160,12 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
             } catch (
-                TransportExceptionInterface|
-                ClientExceptionInterface|
-                ServerExceptionInterface|
+                TransportExceptionInterface |
+                ClientExceptionInterface |
+                ServerExceptionInterface |
                 RedirectionExceptionInterface $e
             ) {
-                $this->logger->error('Erreur API Previsions Met.no : '.$e->getMessage());
+                $this->logger->error('Erreur API Previsions Met.no : ' . $e->getMessage());
                 $forecasts = [];
             }
         } else {
@@ -180,19 +181,17 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
     {
         $today = (new \DateTimeImmutable())->format('Y-m-d');
         $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
-        $cacheKey = 'metno.hourly.'.$today;
 
-        // Récupère le cache existant
-        $cacheItem = $this->cache->getItem($cacheKey);
-        $stored = $cacheItem->isHit() ? $cacheItem->get() : [];
-
+        $stored = [];
+        
+        $hour_now = (new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris')))->format('G');
+        
         foreach ($this->hourlyToday as $entry) {
             $dt = (new \DateTimeImmutable($entry['time']))->setTimezone(new \DateTimeZone('Europe/Paris'));
             $date = $dt->format('Y-m-d');
-            $time = $dt->format('G\h');
-
-            if ($date === $today || ($date === $tomorrow && $time === '0h')) {
-                $time = ($date === $tomorrow && $time === '0h') ? '24h' : $time;
+            $time = $dt->format('G');
+            if ($date === $today || ($date === $tomorrow && $time < $hour_now)) {
+                $time = $time."h";
                 $details = $entry['data']['instant']['details'] ?? [];
                 if (!isset($details['air_temperature'])) {
                     continue;
@@ -211,11 +210,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
             }
         }
 
-        ksort($stored);
-
-        // Sauvegarde mise à jour
-        $cacheItem->set($stored)->expiresAfter(86400);
-        $this->cache->save($cacheItem);
+        
 
         // Conversion en objets HourlyForecastData
         $result = [];
@@ -229,13 +224,12 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                     emoji: $data['emoji'],
                 );
             } catch (\InvalidArgumentException $e) {
-                $this->logger->error('erreur :'.$e->getMessage());
+                $this->logger->error('erreur :' . $e->getMessage());
             }
         }
-
         return $result;
     }
-    
+
     private function getSymbolMeta(?string $code): array
     {
         return match ($code) {
@@ -279,6 +273,4 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
         return ['label' => 'Inconnu', 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
     }
-
-   
 }

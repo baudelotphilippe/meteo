@@ -109,6 +109,7 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
                 $data = $response->toArray();
                 $this->hourlyToday = $data['hourly'];
+                dump($data);
                 // $this->logger->info(print_r($data['hourly']));
 
                 $forecasts = [];
@@ -148,16 +149,17 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
         $today = (new \DateTimeImmutable())->format('Y-m-d');
         $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
+        $hour_now = (new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris')))->format('G');
 
         $result = [];
 
         foreach ($this->hourlyToday['time'] as $i => $iso) {
             $dt = new \DateTimeImmutable($iso);
             $date = $dt->format('Y-m-d');
-            $time = $dt->format('G\h');
+            $time = $dt->format('G');
 
-            if (($date === $today) || (($date === $tomorrow) && ($time === '0h'))) {
-                $time = ($date === $tomorrow) ? '24h' : $time;
+            if ((($date === $today) && ($time >=$hour_now)) || (($date === $tomorrow) && ($time <$hour_now))) {
+                $time = $time."h";
                 $info = $this->getWeatherInfo($this->hourlyToday['weathercode'][$i]);
                 try {
                     $result[] = new HourlyForecastData(

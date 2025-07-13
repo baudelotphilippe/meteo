@@ -50,7 +50,6 @@ class WeatherController extends AbstractController
                 'emoji' => array_map(fn ($h) => $h->emoji, $hourlyData),
             ];
         }
-
         return $this->render(
             'meteo.html.twig',
             [

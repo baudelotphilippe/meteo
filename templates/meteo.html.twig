@@ -88,15 +88,6 @@
 		</div>
 
 		 <script>
-		const allLabels = [];
-		for (let h = 0; h <= 24; h++) allLabels.push(h + 'h');
-	
-		function alignData(labelsSource, dataSource) {
-			return allLabels.map(label => {
-			const idx = labelsSource.indexOf(label);
-			return idx !== -1 ? dataSource[idx] : null;
-			});
-		}
 	
 		const iconPlugin = {
 			id: 'weatherIcons',
@@ -117,32 +108,6 @@
 			});
 			}
 		};
-	const hourNowPlugin = {
-		id: 'hourNow',
-		beforeDraw(chart) {
-			const now = new Date();
-			const hour = now.getHours() + now.getMinutes() / 60;
-			const xScale = chart.scales.x;
-			const ctx = chart.ctx;
-			const labels = chart.data.labels;
-
-			if (!xScale || !ctx || !labels || labels.length === 0) return;
-
-			const x0 = xScale.getPixelForValue(labels[Math.floor(hour)]);
-			const x1 = xScale.getPixelForValue(labels[Math.ceil(hour)]);
-			const ratio = hour - Math.floor(hour);
-			const x = x0 + (x1 - x0) * ratio;
-
-			ctx.save();
-			ctx.beginPath();
-			ctx.moveTo(x, chart.chartArea.top);
-			ctx.lineTo(x, chart.chartArea.bottom);
-			ctx.lineWidth = 2;
-			ctx.strokeStyle = '#ff0000';
-			ctx.stroke();
-			ctx.restore();
-		}
-	};
 
 	{% for source in sources %}
 		{% set provider = source.provider %}
@@ -150,17 +115,17 @@
 		new Chart(document.getElementById('chart-{{ loop.index }}'), {
 			type: 'line',
 			data: {
-			labels: allLabels,
+			labels: {{ todayHourly[provider].labels|json_encode|raw }},
 			datasets: [{
 				label: '{{ provider }}',
-				data: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].temperatures|json_encode|raw }}),
+				data: {{ todayHourly[provider].temperatures|json_encode|raw }},
 				borderColor: '{{ colors[provider].border }}',
 				backgroundColor: '{{ colors[provider].background }}',
 				fill: false,
 				tension: 0.3,
 				pointRadius: 4,
 				spanGaps: true,
-				icons: alignData({{ todayHourly[provider].labels|json_encode|raw }}, {{ todayHourly[provider].emoji|json_encode|raw }})
+				icons: {{ todayHourly[provider].emoji|json_encode|raw }}
 			}]
 			},
 			options: {
@@ -191,7 +156,7 @@
 				legend: { display: false }
 			}
 			},
-			plugins: [iconPlugin, hourNowPlugin]
+			plugins: [iconPlugin]
 		});
 		{% endif %}
 	{% endfor %}
