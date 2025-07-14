@@ -89,15 +89,10 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         return $weather;
     }
 
-    public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
+  public function getForecastApiInformations(LocationCoordinatesInterface $locationCoordinates): array
     {
-        $cacheKey = 'openmeteo.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
-
-        $item = $this->cache->getItem($cacheKey);
-
-        if (!$item->isHit()) {
-            try {
-                $response = $this->client->request('GET', $this->endpoint, [
+        try {
+            $response = $this->client->request('GET', $this->endpoint, [
                     'query' => [
                         'latitude' => $locationCoordinates->getLatitude(),
                         'longitude' => $locationCoordinates->getLongitude(),
@@ -106,10 +101,29 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                         'timezone' => 'auto',
                     ],
                 ]);
+            return $response->toArray();
+        } catch (
+            TransportExceptionInterface |
+            ClientExceptionInterface |
+            ServerExceptionInterface |
+            RedirectionExceptionInterface $e
+        ) {
+            $this->logger->error('Erreur API Prévisions OpenMeteo : ' . $e->getMessage());
+            return [];
+        }
+    }
 
-                $data = $response->toArray();
+    public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
+    {
+        $cacheKey = 'openmeteo.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+
+        $item = $this->cache->getItem($cacheKey);
+
+        if (!$item->isHit()) {
+          
+                $data = $this->getForecastApiInformations($locationCoordinates);
                 $this->hourlyToday = $data['hourly'];
-                dump($data);
+
                 // $this->logger->info(print_r($data['hourly']));
 
                 $forecasts = [];
@@ -128,10 +142,6 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
                 $item->expiresAfter(1800); // 30 min
                 $this->cache->save($item);
-            } catch (TransportExceptionInterface|ClientExceptionInterface|ServerExceptionInterface|RedirectionExceptionInterface $e) {
-                $this->logger->error('Erreur API Prévisions OpenMeteo : '.$e->getMessage());
-                $forecasts = [];
-            }
         } else {
             $infos = $item->get();
             $forecasts = $infos['forecast'];
@@ -141,10 +151,11 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         return $forecasts;
     }
 
-    public function getTodayHourly(): array
+    public function getTodayHourly(LocationCoordinatesInterface $locationCoordinates): array
     {
         if (empty($this->hourlyToday)) {
-            return []; // getForecast() n’a pas encore été appelé
+            $data=$this->getForecastApiInformations($locationCoordinates);
+            $this->hourlyToday = $data['hourly'];
         }
 
         $today = (new \DateTimeImmutable())->format('Y-m-d');

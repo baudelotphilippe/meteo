@@ -90,52 +90,57 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         return $weather;
     }
 
+    public function getForecastApiInformations(LocationCoordinatesInterface $locationCoordinates): array
+    {
+        try {
+            $response = $this->client->request('GET', $this->endpointForecast, [
+                'query' => [
+                    'key' => $this->apiKey,
+                    'q' => $locationCoordinates->getName(),
+                    'days' => 3,
+                    'lang' => 'fr',
+                ],
+            ]);
+
+            return $response->toArray();
+        } catch (
+            TransportExceptionInterface |
+            ClientExceptionInterface |
+            ServerExceptionInterface |
+            RedirectionExceptionInterface $e
+        ) {
+            $this->logger->error('Erreur API Prévisions WeatherAPI : ' . $e->getMessage());
+            return [];
+        }
+    }
+
     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
         $cacheKey = 'weatherapi.forecast' . sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
-            try {
-                $response = $this->client->request('GET', $this->endpointForecast, [
-                    'query' => [
-                        'key' => $this->apiKey,
-                        'q' => $locationCoordinates->getName(),
-                        'days' => 3,
-                        'lang' => 'fr',
-                    ],
-                ]);
 
-                $data = $response->toArray();
-                $this->hourlyToday = $data['forecast']['forecastday'];
+            $data = $this->getForecastApiInformations($locationCoordinates);
+            $this->hourlyToday = $data['forecast']['forecastday'];
 
-                $forecasts = [];
-                foreach ($data['forecast']['forecastday'] as $day) {
-                    $picto = $this->iconFromCondition($day['day']['condition']['text']);
-                    $forecasts[] = new ForecastData(
-                        provider: 'WeatherAPI',
-                        date: new \DateTimeImmutable($day['date']),
-                        tmin: $day['day']['mintemp_c'],
-                        tmax: $day['day']['maxtemp_c'],
-                        icon: $picto['icon'],
-                        emoji: $picto['emoji']
-                    );
-                }
-
-                $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
-
-                $item->expiresAfter(1800); // 30 min
-                $this->cache->save($item);
-            } catch (
-                TransportExceptionInterface |
-                ClientExceptionInterface |
-                ServerExceptionInterface |
-                RedirectionExceptionInterface $e
-            ) {
-                $this->logger->error('Erreur API Prévisions WeatherAPI : ' . $e->getMessage());
-
-                return [];
+            $forecasts = [];
+            foreach ($data['forecast']['forecastday'] as $day) {
+                $picto = $this->iconFromCondition($day['day']['condition']['text']);
+                $forecasts[] = new ForecastData(
+                    provider: 'WeatherAPI',
+                    date: new \DateTimeImmutable($day['date']),
+                    tmin: $day['day']['mintemp_c'],
+                    tmax: $day['day']['maxtemp_c'],
+                    icon: $picto['icon'],
+                    emoji: $picto['emoji']
+                );
             }
+
+            $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
+
+            $item->expiresAfter(1800); // 30 min
+            $this->cache->save($item);
         } else {
             $infos = $item->get();
             $forecasts = $infos['forecast'];
@@ -145,10 +150,11 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         return $forecasts;
     }
 
-    public function getTodayHourly(): array
+    public function getTodayHourly(LocationCoordinatesInterface $locationCoordinates): array
     {
-        if (empty($this->hourlyToday)) {
-            return [];
+        if (empty($this->hourlyToday)) {            
+            $data = $this->getForecastApiInformations($locationCoordinates);
+            $this->hourlyToday = $data['forecast']['forecastday'];
         }
 
         $hour_now = (new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris')))->format('G');

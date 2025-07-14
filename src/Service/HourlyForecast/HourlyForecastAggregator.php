@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service\HourlyForecast;
 
+use App\Dto\LocationCoordinatesInterface;
+
 class HourlyForecastAggregator
 {
     /**
@@ -16,12 +18,12 @@ class HourlyForecastAggregator
     /**
      * @return array<int|string, list>
      */
-    public function getAll(): array
+    public function getAll(LocationCoordinatesInterface $locationCoordinates): array
     {
         $result = [];
 
         foreach ($this->providers as $provider) {
-            foreach ($provider->getTodayHourly() as $item) {
+            foreach ($provider->getTodayHourly($locationCoordinates) as $item) {
                 $result[$item->provider][] = $item;
             }
         }

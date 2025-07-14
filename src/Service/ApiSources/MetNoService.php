@@ -86,88 +86,94 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         return $weather;
     }
 
+    public function getForecastApiInformations(LocationCoordinatesInterface $locationCoordinates): array
+    {
+        try {
+            $response = $this->client->request('GET', $this->endpoint, [
+                'query' => [
+                    'lat' => $locationCoordinates->getLatitude(),
+                    'lon' => $locationCoordinates->getLongitude(),
+                ],
+                'headers' => [
+                    'User-Agent' => 'MonProjetMeteo/1.0 (mon@email.com)',
+                ],
+            ]);
+
+            return $response->toArray();
+        } catch (
+            TransportExceptionInterface |
+            ClientExceptionInterface |
+            ServerExceptionInterface |
+            RedirectionExceptionInterface $e
+        ) {
+            $this->logger->error('Erreur API Previsions Met.no : ' . $e->getMessage());
+            return [];
+        }
+    }
+
     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
         $cacheKey = 'met.forecast' . sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
-       if (!$item->isHit()) {
-            try {
-                $response = $this->client->request('GET', $this->endpoint, [
-                    'query' => [
-                        'lat' => $locationCoordinates->getLatitude(),
-                        'lon' => $locationCoordinates->getLongitude(),
-                    ],
-                    'headers' => [
-                        'User-Agent' => 'MonProjetMeteo/1.0 (mon@email.com)',
-                    ],
-                ]);
+        if (!$item->isHit()) {
 
-                $data = $response->toArray();
-                // stock prévisions
-                $this->hourlyToday = $data['properties']['timeseries'];
+            $data = $this->getForecastApiInformations($locationCoordinates);
+            // stock prévisions
+            $this->hourlyToday = $data['properties']['timeseries'];
 
-                $jours = [];
+            $jours = [];
 
-                foreach ($this->hourlyToday as $entry) {
-                    $date = new \DateTimeImmutable($entry['time']);
-                    $dayKey = $date->format('Y-m-d');
+            foreach ($this->hourlyToday as $entry) {
+                $date = new \DateTimeImmutable($entry['time']);
+                $dayKey = $date->format('Y-m-d');
 
-                    if (!isset($entry['data']['instant']['details']['air_temperature'])) {
-                        continue;
-                    }
-
-                    $temp = $entry['data']['instant']['details']['air_temperature'];
-                    $symbolCode =
-                        $entry['data']['next_1_hours']['summary']['symbol_code']
-                        ?? $entry['data']['next_6_hours']['summary']['symbol_code']
-                        ?? $entry['data']['next_12_hours']['summary']['symbol_code']
-                        ?? null;
-                    $heure = (new \DateTimeImmutable($entry['time']))->format('Y-m-d H:i');
-
-                    if (empty($symbolCode)) {
-                        $this->logger->error("Symbol code manquant à $heure");
-                    }
-                    $jours[$dayKey][] = ['temp' => $temp, 'symbol' => $symbolCode];
+                if (!isset($entry['data']['instant']['details']['air_temperature'])) {
+                    continue;
                 }
 
-                $forecasts = [];
-                $i = 0;
-                foreach ($jours as $day => $dataList) {
-                    if ($i >= 7) {
-                        break;
-                    }
+                $temp = $entry['data']['instant']['details']['air_temperature'];
+                $symbolCode =
+                    $entry['data']['next_1_hours']['summary']['symbol_code']
+                    ?? $entry['data']['next_6_hours']['summary']['symbol_code']
+                    ?? $entry['data']['next_12_hours']['summary']['symbol_code']
+                    ?? null;
+                $heure = (new \DateTimeImmutable($entry['time']))->format('Y-m-d H:i');
 
-                    $temps = array_column($dataList, 'temp');
-                    $symbols = array_column($dataList, 'symbol');
-
-                    // prends au milieu de la journée pour savoir quel symbol utiliser
-                    $symbol = $symbols[(int) round(count($symbols) / 2)] ?? null;
-                    $displayMeteo = $this->getSymbolMeta($symbol);
-
-                    $forecasts[] = new ForecastData(
-                        provider: 'Met.no',
-                        date: new \DateTimeImmutable($day),
-                        tmin: min($temps),
-                        tmax: max($temps),
-                        icon: $displayMeteo['icon'],
-                        emoji: $displayMeteo['emoji'],
-                    );
-
-                    $i++;
+                if (empty($symbolCode)) {
+                    $this->logger->error("Symbol code manquant à $heure");
                 }
-                $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
-                $item->expiresAfter(1800); // 30 min
-                $this->cache->save($item);
-            } catch (
-                TransportExceptionInterface |
-                ClientExceptionInterface |
-                ServerExceptionInterface |
-                RedirectionExceptionInterface $e
-            ) {
-                $this->logger->error('Erreur API Previsions Met.no : ' . $e->getMessage());
-                $forecasts = [];
+                $jours[$dayKey][] = ['temp' => $temp, 'symbol' => $symbolCode];
             }
+
+            $forecasts = [];
+            $i = 0;
+            foreach ($jours as $day => $dataList) {
+                if ($i >= 7) {
+                    break;
+                }
+
+                $temps = array_column($dataList, 'temp');
+                $symbols = array_column($dataList, 'symbol');
+
+                // prends au milieu de la journée pour savoir quel symbol utiliser
+                $symbol = $symbols[(int) round(count($symbols) / 2)] ?? null;
+                $displayMeteo = $this->getSymbolMeta($symbol);
+
+                $forecasts[] = new ForecastData(
+                    provider: 'Met.no',
+                    date: new \DateTimeImmutable($day),
+                    tmin: min($temps),
+                    tmax: max($temps),
+                    icon: $displayMeteo['icon'],
+                    emoji: $displayMeteo['emoji'],
+                );
+
+                $i++;
+            }
+            $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
+            $item->expiresAfter(1800); // 30 min
+            $this->cache->save($item);
         } else {
             $infos = $item->get();
             $forecasts = $infos['forecast'];
@@ -177,21 +183,24 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         return $forecasts;
     }
 
-    public function getTodayHourly(): array
+    public function getTodayHourly(LocationCoordinatesInterface $locationCoordinates): array
     {
+        if (empty($this->hourlyToday)) {
+            $data = $this->getForecastApiInformations($locationCoordinates);
+            $this->hourlyToday = $data['properties']['timeseries'];
+        }
+
         $today = (new \DateTimeImmutable())->format('Y-m-d');
         $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
-
-        $stored = [];
-        
         $hour_now = (new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris')))->format('G');
-        
+        $stored = [];
+
         foreach ($this->hourlyToday as $entry) {
             $dt = (new \DateTimeImmutable($entry['time']))->setTimezone(new \DateTimeZone('Europe/Paris'));
             $date = $dt->format('Y-m-d');
             $time = $dt->format('G');
             if ($date === $today || ($date === $tomorrow && $time < $hour_now)) {
-                $time = $time."h";
+                $time = $time . "h";
                 $details = $entry['data']['instant']['details'] ?? [];
                 if (!isset($details['air_temperature'])) {
                     continue;
@@ -209,8 +218,6 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $stored[$time] = $newData;
             }
         }
-
-        
 
         // Conversion en objets HourlyForecastData
         $result = [];

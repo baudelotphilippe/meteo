@@ -36,20 +36,20 @@ class WeatherController extends AbstractController
         }
 
         $forecastRows = [];
-
         foreach ($this->forecast_aggregator->getAll($locationCoordinates) as $forecast) {
             $provider = $forecast->provider;
             $forecastRows[$provider][] = $forecast;
         }
 
         $chartsData = [];
-        foreach ($this->hourly_forecast_aggregator->getAll() as $provider => $hourlyData) {
+        foreach ($this->hourly_forecast_aggregator->getAll($locationCoordinates) as $provider => $hourlyData) {
             $chartsData[$provider] = [
                 'labels' => array_map(fn ($h) => $h->time->format(), $hourlyData),
                 'temperatures' => array_map(fn ($h) => $h->temperature, $hourlyData),
                 'emoji' => array_map(fn ($h) => $h->emoji, $hourlyData),
             ];
         }
+
         return $this->render(
             'meteo.html.twig',
             [
