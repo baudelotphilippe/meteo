@@ -27,7 +27,7 @@ class GeocodeService
         }
 
         $name = $response[0]['name'] ?: $location;
-        $locationCoordinates = new LocationCoordinates($name, (float)$response[0]['lat'], (float)$response[0]['lon'], 'Europe/Paris');
+        $locationCoordinates = new LocationCoordinates($name, (float) $response[0]['lat'], (float) $response[0]['lon'], 'Europe/Paris');
 
         return $locationCoordinates;
     }

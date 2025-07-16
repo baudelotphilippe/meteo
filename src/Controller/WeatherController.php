@@ -44,7 +44,7 @@ class WeatherController extends AbstractController
         $chartsData = [];
         foreach ($this->hourly_forecast_aggregator->getAll($locationCoordinates) as $provider => $hourlyData) {
             $chartsData[$provider] = [
-                'labels' => array_map(fn ($h) => $h->time->format(), $hourlyData),
+                'labels' => array_map(fn ($h) => $h->time->format('G\h'), $hourlyData),
                 'temperatures' => array_map(fn ($h) => $h->temperature, $hourlyData),
                 'emoji' => array_map(fn ($h) => $h->emoji, $hourlyData),
             ];

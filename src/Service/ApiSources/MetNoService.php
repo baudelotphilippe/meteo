@@ -10,7 +10,6 @@ use App\Dto\WeatherData;
 use App\Service\Forecast\ForecastProviderInterface;
 use App\Service\HourlyForecast\HourlyForecastProviderInterface;
 use App\Service\Weather\WeatherProviderInterface;
-use App\ValueObject\Time;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
@@ -24,11 +23,13 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
     private string $endpoint = 'https://api.met.no/weatherapi/locationforecast/2.0/compact';
     private array $hourlyToday = [];
 
-    public function __construct(private HttpClientInterface $client, private LoggerInterface $logger, private CacheItemPoolInterface $cache) {}
+    public function __construct(private HttpClientInterface $client, private LoggerInterface $logger, private CacheItemPoolInterface $cache)
+    {
+    }
 
     public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData
     {
-        $cacheKey = 'met.current' . sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+        $cacheKey = 'met.current'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
@@ -65,7 +66,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
             } catch (TransportExceptionInterface $e) {
-                $this->logger->error('Erreur API Weather Met.no : ' . $e->getMessage());
+                $this->logger->error('Erreur API Weather Met.no : '.$e->getMessage());
                 $weather = new WeatherData(
                     provider: 'Met.no',
                     temperature: 0,
@@ -101,23 +102,23 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
 
             return $response->toArray();
         } catch (
-            TransportExceptionInterface |
-            ClientExceptionInterface |
-            ServerExceptionInterface |
+            TransportExceptionInterface|
+            ClientExceptionInterface|
+            ServerExceptionInterface|
             RedirectionExceptionInterface $e
         ) {
-            $this->logger->error('Erreur API Previsions Met.no : ' . $e->getMessage());
+            $this->logger->error('Erreur API Previsions Met.no : '.$e->getMessage());
+
             return [];
         }
     }
 
     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
     {
-        $cacheKey = 'met.forecast' . sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+        $cacheKey = 'met.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
         if (!$item->isHit()) {
-
             $data = $this->getForecastApiInformations($locationCoordinates);
             // stock prévisions
             $this->hourlyToday = $data['properties']['timeseries'];
@@ -190,17 +191,13 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
             $this->hourlyToday = $data['properties']['timeseries'];
         }
 
-        $today = (new \DateTimeImmutable())->format('Y-m-d');
-        $tomorrow = (new \DateTimeImmutable('+1 day'))->format('Y-m-d');
-        $hour_now = (new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris')))->format('G');
-        $stored = [];
+        $today = new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $tomorrow = new \DateTimeImmutable('+1 day')->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $result = [];
 
         foreach ($this->hourlyToday as $entry) {
             $dt = (new \DateTimeImmutable($entry['time']))->setTimezone(new \DateTimeZone('Europe/Paris'));
-            $date = $dt->format('Y-m-d');
-            $time = $dt->format('G');
-            if ($date === $today || ($date === $tomorrow && $time < $hour_now)) {
-                $time = $time . "h";
+            if ($dt >= $today && $dt < $tomorrow) {
                 $details = $entry['data']['instant']['details'] ?? [];
                 if (!isset($details['air_temperature'])) {
                     continue;
@@ -208,32 +205,21 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $temp = $details['air_temperature'];
                 $symbolCode = $entry['data']['next_1_hours']['summary']['symbol_code'] ?? null;
                 $displayMeteo = $this->getSymbolMeta($symbolCode);
-                $newData = [
-                    'temp' => $temp,
-                    'desc' => $displayMeteo['label'],
-                    'icon' => $displayMeteo['icon'],
-                    'emoji' => $displayMeteo['emoji'],
-                ];
 
-                $stored[$time] = $newData;
+                try {
+                    $result[] = new \App\Dto\HourlyForecastData(
+                        provider: 'Met.no',
+                        time: $dt,
+                        temperature: $temp,
+                        description: $displayMeteo['label'],
+                        emoji: $displayMeteo['emoji'],
+                    );
+                } catch (\InvalidArgumentException $e) {
+                    $this->logger->error('erreur :'.$e->getMessage());
+                }
             }
         }
 
-        // Conversion en objets HourlyForecastData
-        $result = [];
-        foreach ($stored as $time => $data) {
-            try {
-                $result[] = new \App\Dto\HourlyForecastData(
-                    provider: 'Met.no',
-                    time: new Time($time),
-                    temperature: $data['temp'],
-                    description: $data['desc'],
-                    emoji: $data['emoji'],
-                );
-            } catch (\InvalidArgumentException $e) {
-                $this->logger->error('erreur :' . $e->getMessage());
-            }
-        }
         return $result;
     }
 
