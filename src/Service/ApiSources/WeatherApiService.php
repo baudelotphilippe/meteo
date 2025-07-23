@@ -24,12 +24,14 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
     private string $endpointWeather = 'https://api.weatherapi.com/v1/current.json';
     private string $endpointForecast = 'https://api.weatherapi.com/v1/forecast.json';
     private array $hourlyToday = [];
+    private const API_NAME = 'WeatherApi';
 
     public function __construct(
         private HttpClientInterface $client,
         private string $apiKey,
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
+        private LoggerInterface $meteoLogger,
     ) {
     }
 
@@ -45,15 +47,17 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
 
         if (!$item->isHit()) {
             try {
-                $response = $this->client->request('GET', $this->endpointWeather, [
-                    'query' => [
-                        'key' => $this->apiKey,
-                        'q' => $locationCoordinates->getName(),
-                        'lang' => 'fr',
-                    ],
+                $query = [
+                    'key' => $this->apiKey,
+                    'q' => $locationCoordinates->getName(),
+                    'lang' => 'fr',
+                ];
+                $data = $this->client->request('GET', $this->endpointWeather, ['query' => $query])->toArray();
+                $this->meteoLogger->info('Interrogation '.self::API_NAME, [
+                    'query' => $query,
+                    'endpoint' => $this->endpointWeather,
+                    'data' => $data,
                 ]);
-
-                $data = $response->toArray();
                 $weather = new WeatherData(
                     provider: 'WeatherAPI',
                     temperature: $data['current']['temp_c'],
@@ -70,6 +74,11 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
                 $this->cache->save($item);
             } catch (ClientExceptionInterface|TransportExceptionInterface $e) {
                 $this->logger->error('Erreur API WeatherAPI Met.no : '.$e->getMessage());
+                $this->meteoLogger->info('Interrogation '.self::API_NAME, [
+                    'query' => $query,
+                    'endpoint' => $this->endpointWeather,
+                    'error' => $e->getMessage(),
+                ]);
                 $weather = new WeatherData(
                     provider: 'WeatherAPI',
                     temperature: 0,
