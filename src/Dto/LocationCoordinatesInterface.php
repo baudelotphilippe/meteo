@@ -13,4 +13,6 @@ interface LocationCoordinatesInterface
     public function getLongitude(): float;
 
     public function getTimezone(): string;
+
+    public function toArray(): array;
 }
