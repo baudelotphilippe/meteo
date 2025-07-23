@@ -170,8 +170,8 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
             $this->hourlyToday = $data['list'];
         }
 
-        $today = new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = new \DateTimeImmutable('+1 day')->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
         $result = [];
         foreach ($this->hourlyToday as $entry) {
             $dt = new \DateTimeImmutable($entry['dt_txt']);
