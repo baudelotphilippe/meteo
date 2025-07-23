@@ -155,8 +155,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
             $this->hourlyToday = $data['hourly'];
         }
 
-        $today = new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = new \DateTimeImmutable('+1 day')->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
 
         $result = [];
 

@@ -157,8 +157,8 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             $this->hourlyToday = $data['forecast']['forecastday'];
         }
 
-        $today = new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = new \DateTimeImmutable('+1 day')->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
         $result = [];
 
         $infos = ['today' => 0, 'tomorrow' => 1];

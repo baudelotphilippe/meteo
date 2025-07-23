@@ -191,8 +191,8 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
             $this->hourlyToday = $data['properties']['timeseries'];
         }
 
-        $today = new \DateTimeImmutable()->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = new \DateTimeImmutable('+1 day')->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
         $result = [];
 
         foreach ($this->hourlyToday as $entry) {
