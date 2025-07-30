@@ -33,6 +33,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
         private LoggerInterface $meteoLogger,
+        private bool $meteo_cache,
     ) {
     }
 
@@ -45,7 +46,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         $cacheKey = 'openweather.current'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+        if (!$item->isHit() || !$this->meteo_cache) {
             try {
                 $query = [
                     'q' => $locationCoordinates->getName(),
@@ -130,7 +131,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         $cacheKey = 'openweather.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+        if (!$item->isHit() || !$this->meteo_cache) {
             $data = $this->getForecastApiInformations($locationCoordinates);
             $grouped = [];
             $this->hourlyToday = $data['list'];

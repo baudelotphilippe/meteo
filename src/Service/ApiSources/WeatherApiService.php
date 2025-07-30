@@ -21,10 +21,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class WeatherApiService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
+    private const API_NAME = 'WeatherApi';
     private string $endpointWeather = 'https://api.weatherapi.com/v1/current.json';
     private string $endpointForecast = 'https://api.weatherapi.com/v1/forecast.json';
     private array $hourlyToday = [];
-    private const API_NAME = 'WeatherApi';
 
     public function __construct(
         private HttpClientInterface $client,
@@ -32,6 +32,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
         private LoggerInterface $meteoLogger,
+        private bool $meteo_cache,
     ) {
     }
 
@@ -45,7 +46,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
 
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+        if (!$item->isHit() || !$this->meteo_cache) {
             try {
                 $query = [
                     'key' => $this->apiKey,
@@ -99,29 +100,33 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         return $weather;
     }
 
-    public function getForecastApiInformations(LocationCoordinatesInterface $locationCoordinates): array
+    private function iconFromCondition(string $text): array
     {
-        try {
-            $response = $this->client->request('GET', $this->endpointForecast, [
-                'query' => [
-                    'key' => $this->apiKey,
-                    'q' => $locationCoordinates->getName(),
-                    'days' => 3,
-                    'lang' => 'fr',
-                ],
-            ]);
+        $t = mb_strtolower($text);
 
-            return $response->toArray();
-        } catch (
-            TransportExceptionInterface|
-            ClientExceptionInterface|
-            ServerExceptionInterface|
-            RedirectionExceptionInterface $e
-        ) {
-            $this->logger->error('Erreur API Prévisions WeatherAPI : '.$e->getMessage());
+        return match (true) {
+            str_contains($t, 'orage') => ['emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
+            str_contains($t, 'neige'), str_contains($t, 'averses de neige') => ['emoji' => '❄️', 'icon' => 'wi wi-snow'],
+            str_contains($t, 'grêle') => ['emoji' => '🧊', 'icon' => 'wi wi-hail'],
+            str_contains($t, 'pluie'), str_contains($t, 'averses') => ['emoji' => '🌧️', 'icon' => 'wi wi-rain'],
+            str_contains($t, 'bruine') => ['emoji' => '🌦️', 'icon' => 'wi wi-showers'],
+            str_contains($t, 'brouillard'), str_contains($t, 'brume') => ['emoji' => '🌫️', 'icon' => 'wi wi-fog'],
+            str_contains($t, 'ensoleillé'), str_contains($t, 'soleil'), str_contains($t, 'clair'), str_contains($t, 'dégagé') => ['emoji' => '☀️', 'icon' => 'wi wi-day-sunny'],
+            str_contains($t, 'partiellement couvert'), str_contains($t, 'partiellement nuageux'), str_contains($t, 'éclaircies'), str_contains($t, 'variable'), str_contains($t, 'mitigé') => ['emoji' => '⛅', 'icon' => 'wi wi-day-cloudy'],
+            str_contains($t, 'couvert'), str_contains($t, 'nuageux') => ['emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
+            str_contains($t, 'tempête'), str_contains($t, 'fortes rafales') => ['emoji' => '🌪️', 'icon' => 'wi wi-storm-showers'],
+            str_contains($t, 'venteux'), str_contains($t, 'rafales') => ['emoji' => '💨', 'icon' => 'wi wi-strong-wind'],
+            str_contains($t, 'gel'), str_contains($t, 'givré') => ['emoji' => '🥶', 'icon' => 'wi wi-snowflake-cold'],
+            str_contains($t, 'beau temps') => ['emoji' => '🌞', 'icon' => 'wi wi-day-sunny'],
+            default => $this->logUnknownSymbol($text),
+        };
+    }
 
-            return [];
-        }
+    private function logUnknownSymbol(string $code): array
+    {
+        $this->logger->warning("Unrecognized symbol code for WeatherApiService : $code");
+
+        return ['label' => 'Inconnu', 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
     }
 
     public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
@@ -129,7 +134,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         $cacheKey = 'weatherapi.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+        if (!$item->isHit() || !$this->meteo_cache) {
             $data = $this->getForecastApiInformations($locationCoordinates);
             $this->hourlyToday = $data['forecast']['forecastday'];
 
@@ -157,6 +162,31 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         }
 
         return $forecasts;
+    }
+
+    public function getForecastApiInformations(LocationCoordinatesInterface $locationCoordinates): array
+    {
+        try {
+            $response = $this->client->request('GET', $this->endpointForecast, [
+                'query' => [
+                    'key' => $this->apiKey,
+                    'q' => $locationCoordinates->getName(),
+                    'days' => 3,
+                    'lang' => 'fr',
+                ],
+            ]);
+
+            return $response->toArray();
+        } catch (
+            TransportExceptionInterface|
+            ClientExceptionInterface|
+            ServerExceptionInterface|
+            RedirectionExceptionInterface $e
+        ) {
+            $this->logger->error('Erreur API Prévisions WeatherAPI : '.$e->getMessage());
+
+            return [];
+        }
     }
 
     public function getTodayHourly(LocationCoordinatesInterface $locationCoordinates): array
@@ -191,34 +221,5 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         }
 
         return $result;
-    }
-
-    private function iconFromCondition(string $text): array
-    {
-        $t = mb_strtolower($text);
-
-        return match (true) {
-            str_contains($t, 'orage') => ['emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
-            str_contains($t, 'neige'), str_contains($t, 'averses de neige') => ['emoji' => '❄️', 'icon' => 'wi wi-snow'],
-            str_contains($t, 'grêle') => ['emoji' => '🧊', 'icon' => 'wi wi-hail'],
-            str_contains($t, 'pluie'), str_contains($t, 'averses') => ['emoji' => '🌧️', 'icon' => 'wi wi-rain'],
-            str_contains($t, 'bruine') => ['emoji' => '🌦️', 'icon' => 'wi wi-showers'],
-            str_contains($t, 'brouillard'), str_contains($t, 'brume') => ['emoji' => '🌫️', 'icon' => 'wi wi-fog'],
-            str_contains($t, 'ensoleillé'), str_contains($t, 'soleil'), str_contains($t, 'clair'), str_contains($t, 'dégagé') => ['emoji' => '☀️', 'icon' => 'wi wi-day-sunny'],
-            str_contains($t, 'partiellement couvert'), str_contains($t, 'partiellement nuageux'), str_contains($t, 'éclaircies'), str_contains($t, 'variable'), str_contains($t, 'mitigé') => ['emoji' => '⛅', 'icon' => 'wi wi-day-cloudy'],
-            str_contains($t, 'couvert'), str_contains($t, 'nuageux') => ['emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
-            str_contains($t, 'tempête'), str_contains($t, 'fortes rafales') => ['emoji' => '🌪️', 'icon' => 'wi wi-storm-showers'],
-            str_contains($t, 'venteux'), str_contains($t, 'rafales') => ['emoji' => '💨', 'icon' => 'wi wi-strong-wind'],
-            str_contains($t, 'gel'), str_contains($t, 'givré') => ['emoji' => '🥶', 'icon' => 'wi wi-snowflake-cold'],
-            str_contains($t, 'beau temps') => ['emoji' => '🌞', 'icon' => 'wi wi-day-sunny'],
-            default => $this->logUnknownSymbol($text),
-        };
-    }
-
-    private function logUnknownSymbol(string $code): array
-    {
-        $this->logger->warning("Unrecognized symbol code for WeatherApiService : $code");
-
-        return ['label' => 'Inconnu', 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
     }
 }
