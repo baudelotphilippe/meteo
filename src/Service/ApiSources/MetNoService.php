@@ -20,15 +20,16 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class MetNoService implements WeatherProviderInterface, ForecastProviderInterface, HourlyForecastProviderInterface
 {
+    private const API_NAME = 'MetNo';
     private string $endpoint = 'https://api.met.no/weatherapi/locationforecast/2.0/compact';
     private array $hourlyToday = [];
-    private const API_NAME = 'MetNo';
 
     public function __construct(
         private HttpClientInterface $client,
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
         private LoggerInterface $meteoLogger,
+        private bool $meteo_cache
     ) {
     }
 
@@ -37,7 +38,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         $cacheKey = 'met.current'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+        if (!$item->isHit() || !$this->meteo_cache) {
             try {
                 $query = [
                     'lat' => $locationCoordinates->getLatitude(),
@@ -150,7 +151,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         $cacheKey = 'met.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+        if (!$item->isHit() || !$this->meteo_cache) {
             $data = $this->getForecastApiInformations($locationCoordinates);
             // stock prévisions
             $this->hourlyToday = $data['properties']['timeseries'];

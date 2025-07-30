@@ -32,6 +32,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
         private LoggerInterface $meteoLogger,
+        private bool $meteo_cache
     ) {
     }
 
@@ -45,7 +46,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
 
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+        if (!$item->isHit() || !$this->meteo_cache) {
             try {
                 $query = [
                     'key' => $this->apiKey,
@@ -129,7 +130,7 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
         $cacheKey = 'weatherapi.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
         $item = $this->cache->getItem($cacheKey);
 
-        if (!$item->isHit()) {
+        if (!$item->isHit() || !$this->meteo_cache) {
             $data = $this->getForecastApiInformations($locationCoordinates);
             $this->hourlyToday = $data['forecast']['forecastday'];
 
