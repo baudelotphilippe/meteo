@@ -23,11 +23,13 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 {
     private string $endpoint = 'https://api.open-meteo.com/v1/forecast';
     private array $hourlyToday = [];
+    private const API_NAME = 'Open-Meteo';
 
     public function __construct(
         private HttpClientInterface $client,
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
+        private LoggerInterface $meteoLogger,
     ) {
     }
 
@@ -38,15 +40,21 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
 
         if (!$item->isHit()) {
             try {
-                $data = $this->client->request('GET', $this->endpoint, [
-                    'query' => [
-                        'latitude' => $locationCoordinates->getLatitude(),
-                        'longitude' => $locationCoordinates->getLongitude(),
-                        'current_weather' => true,
-                        'hourly' => 'relative_humidity_2m',
-                        'timezone' => 'auto',
-                    ],
-                ])->toArray();
+                $query = [
+                    'latitude' => $locationCoordinates->getLatitude(),
+                    'longitude' => $locationCoordinates->getLongitude(),
+                    'current_weather' => true,
+                    'hourly' => 'relative_humidity_2m',
+                    'timezone' => 'auto',
+                ];
+
+                $data = $this->client->request('GET', $this->endpoint, ['query' => $query])->toArray();
+
+                $this->meteoLogger->info('Interrogation '.self::API_NAME, [
+                    'query' => $query,
+                    'endpoint' => $this->endpoint,
+                    'data' => $data,
+                ]);
 
                 $weatherInfo = $this->getWeatherInfo($data['current_weather']['weathercode']);
                 $target = (new \DateTimeImmutable())->format('Y-m-d\TH:00');
@@ -67,7 +75,15 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
                 $item->expiresAfter(600); // 10 minutes
                 $this->cache->save($item);
             } catch (TransportExceptionInterface $e) {
+                $this->meteoLogger->error('Interrogation API Weather OpenMeteo ', [
+                    'query' => $query,
+                    'endpoint' => $this->endpoint,
+                    'error' => $e->getMessage(),
+                ]);
+
                 $this->logger->error('Erreur API Weather OpenMeteo : '.$e->getMessage());
+                $this->meteoLogger->error('Erreur API Weather OpenMeteo : '.$e->getMessage());
+
                 $weather = new WeatherData(
                     provider: 'Open-Meteo',
                     temperature: 0,
@@ -86,99 +102,6 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         }
 
         return $weather;
-    }
-
-    public function getForecastApiInformations(LocationCoordinatesInterface $locationCoordinates): array
-    {
-        try {
-            $response = $this->client->request('GET', $this->endpoint, [
-                'query' => [
-                    'latitude' => $locationCoordinates->getLatitude(),
-                    'longitude' => $locationCoordinates->getLongitude(),
-                    'daily' => 'temperature_2m_min,temperature_2m_max,weathercode',
-                    'hourly' => 'temperature_2m,weathercode',
-                    'timezone' => 'auto',
-                ],
-            ]);
-
-            return $response->toArray();
-        } catch (
-            TransportExceptionInterface|
-            ClientExceptionInterface|
-            ServerExceptionInterface|
-            RedirectionExceptionInterface $e
-        ) {
-            $this->logger->error('Erreur API Prévisions OpenMeteo : '.$e->getMessage());
-
-            return [];
-        }
-    }
-
-    public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
-    {
-        $cacheKey = 'openmeteo.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
-
-        $item = $this->cache->getItem($cacheKey);
-
-        if (!$item->isHit()) {
-            $data = $this->getForecastApiInformations($locationCoordinates);
-            $this->hourlyToday = $data['hourly'];
-
-            $forecasts = [];
-            foreach ($data['daily']['time'] as $i => $day) {
-                $info = $this->getWeatherInfo($data['daily']['weathercode'][$i]);
-                $forecasts[] = new ForecastData(
-                    provider: 'Open-Meteo',
-                    date: new \DateTimeImmutable($day),
-                    tmin: $data['daily']['temperature_2m_min'][$i],
-                    tmax: $data['daily']['temperature_2m_max'][$i],
-                    icon: $info['icon'],
-                    emoji: $info['emoji'],
-                );
-            }
-            $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
-            $item->expiresAfter(1800); // 30 min
-            $this->cache->save($item);
-        } else {
-            $infos = $item->get();
-            $forecasts = $infos['forecast'];
-            $this->hourlyToday = $infos['todayHourly'];
-        }
-
-        return $forecasts;
-    }
-
-    public function getTodayHourly(LocationCoordinatesInterface $locationCoordinates): array
-    {
-        if (empty($this->hourlyToday)) {
-            $data = $this->getForecastApiInformations($locationCoordinates);
-            $this->hourlyToday = $data['hourly'];
-        }
-
-        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
-
-        $result = [];
-
-        foreach ($this->hourlyToday['time'] as $i => $iso) {
-            $dt = new \DateTimeImmutable($iso);
-            if ($dt >= $today && $dt < $tomorrow) {
-                $info = $this->getWeatherInfo($this->hourlyToday['weathercode'][$i]);
-                try {
-                    $result[] = new HourlyForecastData(
-                        provider: 'Open-Meteo',
-                        time: $dt,
-                        temperature: $this->hourlyToday['temperature_2m'][$i],
-                        description: $info['label'],
-                        emoji: $info['emoji'],
-                    );
-                } catch (\InvalidArgumentException $e) {
-                    $this->logger->error('erreur :'.$e->getMessage());
-                }
-            }
-        }
-
-        return $result;
     }
 
     private function getWeatherInfo(int $code): array
@@ -232,5 +155,98 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         $this->logger->warning("Unrecognized symbol code for OpenMeteo : $code");
 
         return ['label' => 'inconnu', 'emoji' => '🌡️', 'icon' => 'wi wi-na'];
+    }
+
+    public function getForecast(LocationCoordinatesInterface $locationCoordinates): array
+    {
+        $cacheKey = 'openmeteo.forecast'.sprintf('%.6f_%.6f', $locationCoordinates->getLatitude(), $locationCoordinates->getLongitude());
+
+        $item = $this->cache->getItem($cacheKey);
+
+        if (!$item->isHit()) {
+            $data = $this->getForecastApiInformations($locationCoordinates);
+            $this->hourlyToday = $data['hourly'];
+
+            $forecasts = [];
+            foreach ($data['daily']['time'] as $i => $day) {
+                $info = $this->getWeatherInfo($data['daily']['weathercode'][$i]);
+                $forecasts[] = new ForecastData(
+                    provider: 'Open-Meteo',
+                    date: new \DateTimeImmutable($day),
+                    tmin: $data['daily']['temperature_2m_min'][$i],
+                    tmax: $data['daily']['temperature_2m_max'][$i],
+                    icon: $info['icon'],
+                    emoji: $info['emoji'],
+                );
+            }
+            $item->set(['forecast' => $forecasts, 'todayHourly' => $this->hourlyToday]);
+            $item->expiresAfter(1800); // 30 min
+            $this->cache->save($item);
+        } else {
+            $infos = $item->get();
+            $forecasts = $infos['forecast'];
+            $this->hourlyToday = $infos['todayHourly'];
+        }
+
+        return $forecasts;
+    }
+
+    public function getForecastApiInformations(LocationCoordinatesInterface $locationCoordinates): array
+    {
+        try {
+            $response = $this->client->request('GET', $this->endpoint, [
+                'query' => [
+                    'latitude' => $locationCoordinates->getLatitude(),
+                    'longitude' => $locationCoordinates->getLongitude(),
+                    'daily' => 'temperature_2m_min,temperature_2m_max,weathercode',
+                    'hourly' => 'temperature_2m,weathercode',
+                    'timezone' => 'auto',
+                ],
+            ]);
+
+            return $response->toArray();
+        } catch (
+            TransportExceptionInterface|
+            ClientExceptionInterface|
+            ServerExceptionInterface|
+            RedirectionExceptionInterface $e
+        ) {
+            $this->logger->error('Erreur API Prévisions OpenMeteo : '.$e->getMessage());
+
+            return [];
+        }
+    }
+
+    public function getTodayHourly(LocationCoordinatesInterface $locationCoordinates): array
+    {
+        if (empty($this->hourlyToday)) {
+            $data = $this->getForecastApiInformations($locationCoordinates);
+            $this->hourlyToday = $data['hourly'];
+        }
+
+        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
+
+        $result = [];
+
+        foreach ($this->hourlyToday['time'] as $i => $iso) {
+            $dt = new \DateTimeImmutable($iso);
+            if ($dt >= $today && $dt < $tomorrow) {
+                $info = $this->getWeatherInfo($this->hourlyToday['weathercode'][$i]);
+                try {
+                    $result[] = new HourlyForecastData(
+                        provider: 'Open-Meteo',
+                        time: $dt,
+                        temperature: $this->hourlyToday['temperature_2m'][$i],
+                        description: $info['label'],
+                        emoji: $info['emoji'],
+                    );
+                } catch (\InvalidArgumentException $e) {
+                    $this->logger->error('erreur :'.$e->getMessage());
+                }
+            }
+        }
+
+        return $result;
     }
 }

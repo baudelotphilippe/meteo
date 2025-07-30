@@ -33,4 +33,14 @@ class LocationCoordinates implements LocationCoordinatesInterface
     {
         return $this->timezone;
     }
+
+    public function toArray(): array
+    {
+        return [
+            'name' => $this->name,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
+            'timezone' => $this->timezone,
+        ];
+    }
 }
