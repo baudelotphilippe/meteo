@@ -32,7 +32,7 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
         private LoggerInterface $meteoLogger,
-        private bool $meteo_cache
+        private bool $meteo_cache,
     ) {
     }
 

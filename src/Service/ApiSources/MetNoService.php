@@ -29,7 +29,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
         private LoggerInterface $meteoLogger,
-        private bool $meteo_cache
+        private bool $meteo_cache,
     ) {
     }
 

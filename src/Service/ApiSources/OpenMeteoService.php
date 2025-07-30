@@ -30,9 +30,8 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
         private LoggerInterface $logger,
         private CacheItemPoolInterface $cache,
         private LoggerInterface $meteoLogger,
-        private bool $meteo_cache
+        private bool $meteo_cache,
     ) {
-
     }
 
     public function getWeather(LocationCoordinatesInterface $locationCoordinates): WeatherData

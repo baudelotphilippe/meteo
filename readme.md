@@ -29,5 +29,14 @@ cp .env .env.local
 symfony server:start
 ```
 
-Pour changer de ville, modifier les valeurs du fichier src/Config/CityCoordinates.php
+Vous pouvez personnaliser en surchargeant les valeurs ci dessous dans le env.local : 
+
+
+OPENWEATHER_API_KEY=xxxxxxxxx
+WEATHERAPI_KEY=xxxxxxxxx
+METEO_NAME=Poitiers
+METEO_LATITUDE=46.58
+METEO_LONGITUDE=0.34
+METEO_TIMEZONE='Europe/Paris'
+METEO_CACHE=1
 
