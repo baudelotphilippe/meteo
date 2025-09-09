@@ -27,6 +27,10 @@ class ExceptionSubscriber implements EventSubscriberInterface
     public function onKernelException(ExceptionEvent $event): void
     {
         $sender = $this->parameterBag->get('mailer_sender');
+        $alert_email = $this->parameterBag->get('alert_email');
+        if (!$alert_email) {
+            return;
+        }
 
         $exception = $event->getThrowable();
 
@@ -37,7 +41,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
         $event->getRequest()->setMethod('POST');
         $email = (new Email())
             ->from(new Address($sender, 'error'))
-            ->to('philippe@baudelot.eu')
+            ->to($alert_email)
             ->subject('Il y a un probleme '.date('H:i:s'))
             ->text("
             url : {$url}
