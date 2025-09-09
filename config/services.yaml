@@ -11,6 +11,7 @@ parameters:
     meteo_longitude: '%env(float:METEO_LONGITUDE)%'
     meteo_timezone: '%env(METEO_TIMEZONE)%'
     mailer_sender: '%env(resolve:MAILER_SENDER)%'
+    alert_email: '%env(resolve:ALERT_EMAIL)%'
 
 
 services:
