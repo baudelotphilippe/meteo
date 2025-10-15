@@ -136,6 +136,14 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
 
         if (!$item->isHit() || !$this->meteo_cache) {
             $data = $this->getForecastApiInformations($locationCoordinates);
+
+            // Vérifier que les données sont disponibles
+            if (empty($data) || !isset($data['forecast']['forecastday'])) {
+                $this->logger->warning('WeatherAPI: No forecast data available');
+
+                return [];
+            }
+
             $this->hourlyToday = $data['forecast']['forecastday'];
 
             $forecasts = [];
@@ -193,6 +201,14 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
     {
         if (empty($this->hourlyToday)) {
             $data = $this->getForecastApiInformations($locationCoordinates);
+
+            // Vérifier que les données sont disponibles
+            if (empty($data) || !isset($data['forecast']['forecastday'])) {
+                $this->logger->warning('WeatherAPI: No hourly forecast data available');
+
+                return [];
+            }
+
             $this->hourlyToday = $data['forecast']['forecastday'];
         }
 

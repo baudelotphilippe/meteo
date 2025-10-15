@@ -133,6 +133,14 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
         if (!$item->isHit() || !$this->meteo_cache) {
             $data = $this->getForecastApiInformations($locationCoordinates);
+
+            // Vérifier que les données sont disponibles
+            if (empty($data) || !isset($data['list'])) {
+                $this->logger->warning('OpenWeather API: No forecast data available');
+
+                return [];
+            }
+
             $grouped = [];
             $this->hourlyToday = $data['list'];
             foreach ($data['list'] as $entry) {
@@ -203,6 +211,14 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     {
         if (empty($this->hourlyToday)) {
             $data = $this->getForecastApiInformations($locationCoordinates);
+
+            // Vérifier que les données sont disponibles
+            if (empty($data) || !isset($data['list'])) {
+                $this->logger->warning('OpenWeather API: No hourly forecast data available');
+
+                return [];
+            }
+
             $this->hourlyToday = $data['list'];
         }
 
