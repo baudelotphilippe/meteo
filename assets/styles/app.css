@@ -231,3 +231,7 @@ a{
 .source-weatherapi {
     color: rgba(197, 225, 165, 0.5); /* vert */
 }
+
+.source-météo-france {
+    color: rgba(188, 170, 230, 0.5); /* violet */
+}
