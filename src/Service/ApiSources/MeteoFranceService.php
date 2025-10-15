@@ -224,13 +224,14 @@ class MeteoFranceService implements WeatherProviderInterface, ForecastProviderIn
         }
 
         $hourlyData = $this->cachedForecastData['forecast'];
-        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day', new \DateTimeZone('Europe/Paris')));
         $result = [];
 
         foreach ($hourlyData as $entry) {
             $dt = (new \DateTimeImmutable('@'.$entry['dt']))->setTimezone(new \DateTimeZone('Europe/Paris'));
-            if ($dt >= $today && $dt < $tomorrow) {
+            // Ne garder que les heures entre maintenant et demain à la même heure
+            if ($dt >= $now && $dt < $tomorrow) {
                 $weatherIcon = $entry['weather']['icon'] ?? 'p1j';
                 $displayMeteo = $this->getWeatherMeta($weatherIcon);
 

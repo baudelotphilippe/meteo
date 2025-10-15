@@ -212,15 +212,16 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
             $this->hourlyToday = $data['forecast']['forecastday'];
         }
 
-        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day', new \DateTimeZone('Europe/Paris')));
         $result = [];
 
         $infos = ['today' => 0, 'tomorrow' => 1];
         foreach ($infos as $day => $dayposition) {
             foreach ($this->hourlyToday[$dayposition]['hour'] as $hour) {
                 $dt = new \DateTimeImmutable($hour['time']);
-                if ($dt >= $today && $dt < $tomorrow) {
+                // Ne garder que les heures entre maintenant et demain à la même heure
+                if ($dt >= $now && $dt < $tomorrow) {
                     try {
                         $result[] = new HourlyForecastData(
                             provider: 'WeatherAPI',

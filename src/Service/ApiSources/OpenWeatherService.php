@@ -222,12 +222,13 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
             $this->hourlyToday = $data['list'];
         }
 
-        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day', new \DateTimeZone('Europe/Paris')));
         $result = [];
         foreach ($this->hourlyToday as $entry) {
             $dt = new \DateTimeImmutable($entry['dt_txt']);
-            if ($dt >= $today && $dt < $tomorrow) {
+            // Ne garder que les heures entre maintenant et demain à la même heure
+            if ($dt >= $now && $dt < $tomorrow) {
                 try {
                     $result[] = new HourlyForecastData(
                         provider: 'OpenWeather',

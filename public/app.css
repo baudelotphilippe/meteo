@@ -235,3 +235,7 @@ a{
 .source-météo-france {
     color: rgba(188, 170, 230, 0.5); /* violet */
 }
+
+.source-wttr-in {
+    color: rgba(102, 204, 255, 0.5); /* cyan */
+}

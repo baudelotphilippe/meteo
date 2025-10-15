@@ -225,14 +225,17 @@ class OpenMeteoService implements WeatherProviderInterface, ForecastProviderInte
             $this->hourlyToday = $data['hourly'];
         }
 
-        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day', new \DateTimeZone('Europe/Paris')));
 
         $result = [];
 
         foreach ($this->hourlyToday['time'] as $i => $iso) {
             $dt = new \DateTimeImmutable($iso);
-            if ($dt >= $today && $dt < $tomorrow) {
+            $dt = $dt->setTimezone(new \DateTimeZone('Europe/Paris'));
+
+            // Ne garder que les heures entre maintenant et demain à la même heure
+            if ($dt >= $now && $dt < $tomorrow) {
                 $info = $this->getWeatherInfo($this->hourlyToday['weathercode'][$i]);
                 try {
                     $result[] = new HourlyForecastData(
