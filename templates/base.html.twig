@@ -14,14 +14,7 @@
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css">
 
 		<link rel="stylesheet" href="{{ asset('app.css') }}">
-
-		<script>
-			// Applique le thème immédiatement pour éviter le flash
-			(function() {
-				const theme = localStorage.getItem('theme') || 'light';
-				document.documentElement.setAttribute('data-theme', theme);
-			})();
-		</script>
+		<script src="{{ asset('js/theme.js') }}"></script>
 
 		{% block javascripts %}{% endblock %}
 	</head>
@@ -31,34 +24,5 @@
 		</button>
 
 		{% block body %}{% endblock %}
-
-		<script>
-			// Gestion du dark mode
-			const themeToggle = document.getElementById('theme-toggle');
-			const themeIcon = themeToggle.querySelector('.theme-toggle-icon');
-
-			function updateThemeIcon(theme) {
-				themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
-			}
-
-			// Initialisation
-			const currentTheme = document.documentElement.getAttribute('data-theme');
-			updateThemeIcon(currentTheme);
-
-			// Toggle
-			themeToggle.addEventListener('click', () => {
-				const currentTheme = document.documentElement.getAttribute('data-theme');
-				const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-				document.documentElement.setAttribute('data-theme', newTheme);
-				localStorage.setItem('theme', newTheme);
-				updateThemeIcon(newTheme);
-
-				// Mettre à jour les graphiques si la fonction existe
-				if (typeof updateChartsTheme === 'function') {
-					updateChartsTheme();
-				}
-			});
-		</script>
 	</body>
 </html>
