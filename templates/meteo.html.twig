@@ -88,10 +88,21 @@
 		</div>
 
 		 <script>
-	
+
+		// Fonction pour obtenir les couleurs en fonction du thème
+		function getChartColors() {
+			const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+			return {
+				gridColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+				textColor: isDark ? '#e0e0e0' : '#666',
+				iconColor: isDark ? '#e0e0e0' : '#000'
+			};
+		}
+
 		const iconPlugin = {
 			id: 'weatherIcons',
 			afterDatasetsDraw(chart) {
+			const colors = getChartColors();
 			chart.data.datasets.forEach((dataset, datasetIndex) => {
 				const meta = chart.getDatasetMeta(datasetIndex);
 				if (!dataset.icons || meta.hidden) return;
@@ -101,6 +112,7 @@
 					chart.ctx.save();
 					chart.ctx.font = '16px sans-serif';
 					chart.ctx.textAlign = 'center';
+					chart.ctx.fillStyle = colors.iconColor;
 					chart.ctx.fillText(icon, point.x, point.y - 20);
 					chart.ctx.restore();
 				}
@@ -109,10 +121,59 @@
 			}
 		};
 
+		// Stockage des instances de graphiques
+		const chartInstances = [];
+
+		// Fonction pour créer/mettre à jour les options de graphique
+		function getChartOptions() {
+			const colors = getChartColors();
+			return {
+				responsive: true,
+				maintainAspectRatio: false,
+				scales: {
+					x: {
+						ticks: {
+							autoSkip: false,
+							color: colors.textColor,
+							font: {
+								size: window.innerWidth < 600 ? 10 : 12
+							}
+						},
+						grid: {
+							color: colors.gridColor
+						}
+					},
+					y: {
+						position: 'left',
+						min: 0,
+						max: 40,
+						ticks: {
+							color: colors.textColor
+						},
+						grid: {
+							color: colors.gridColor
+						}
+					},
+					yRight: {
+						position: 'right',
+						min: 0,
+						max: 40,
+						ticks: {
+							color: colors.textColor
+						},
+						grid: { drawOnChartArea: false }
+					}
+				},
+				plugins: {
+					legend: { display: false }
+				}
+			};
+		}
+
 	{% for source in sources %}
 		{% set provider = source.provider %}
 		{% if todayHourly[provider] is defined %}
-		new Chart(document.getElementById('chart-{{ loop.index }}'), {
+		chartInstances.push(new Chart(document.getElementById('chart-{{ loop.index }}'), {
 			type: 'line',
 			data: {
 			labels: {{ todayHourly[provider].labels|json_encode|raw }},
@@ -128,38 +189,20 @@
 				icons: {{ todayHourly[provider].emoji|json_encode|raw }}
 			}]
 			},
-			options: {
-			responsive: true,
-			maintainAspectRatio: false,
-			scales: {
-				x: {
-					ticks: 
-						{ autoSkip: false ,
-						font: {
-							size: window.innerWidth < 600 ? 10 : 12
-						}
-					},
-				},
-				y: {
-					position: 'left',
-					min: 0,
-					max: 40,
-				},
-				yRight: {
-					position: 'right',
-					min: 0,
-					max: 40,
-					grid: { drawOnChartArea: false }, // empêche double quadrillage
-				}
-			},
-			plugins: {
-				legend: { display: false }
-			}
-			},
+			options: getChartOptions(),
 			plugins: [iconPlugin]
-		});
+		}));
 		{% endif %}
 	{% endfor %}
+
+	// Fonction pour mettre à jour tous les graphiques
+	function updateChartsTheme() {
+		const newOptions = getChartOptions();
+		chartInstances.forEach(chart => {
+			chart.options = newOptions;
+			chart.update('none'); // 'none' pour éviter l'animation
+		});
+	}
 
 	// btns filter			
 	const buttons = document.querySelectorAll('.filter-btn');
