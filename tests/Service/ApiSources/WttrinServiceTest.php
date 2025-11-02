@@ -18,7 +18,7 @@ class WttrinServiceTest extends KernelTestCase
         $locationCoordinates = new LocationCoordinates('Poitiers', 46.58, 0.34, 'Europe/Paris');
         $weatherData = $wttrinService->getWeather($locationCoordinates);
         $this->assertTrue($weatherData instanceof WeatherData);
-        $this->assertTrue($weatherData->provider === 'wttr.in');
+        $this->assertTrue($weatherData->provider === 'Wttr.in');
     }
 
     public function testGetForecast(): void

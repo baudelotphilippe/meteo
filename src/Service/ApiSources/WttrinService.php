@@ -23,7 +23,7 @@ class WttrinService implements WeatherProviderInterface, ForecastProviderInterfa
 {
     private string $baseUrl = 'https://wttr.in';
     private array $cachedForecastData = [];
-    private const API_NAME = 'wttr.in';
+    private const API_NAME = 'Wttr.in';
 
     public function __construct(
         private HttpClientInterface $client,
@@ -50,12 +50,12 @@ class WttrinService implements WeatherProviderInterface, ForecastProviderInterfa
                 $current = $forecastData['current_condition'][0];
 
                 $weather = new WeatherData(
-                    provider: 'wttr.in',
+                    provider: 'Wttr.in',
                     temperature: (float) $current['temp_C'],
                     description: $current['weatherDesc'][0]['value'] ?? 'Unknown',
                     humidity: (int) $current['humidity'],
                     wind: (float) $current['windspeedKmph'],
-                    sourceName: 'wttr.in',
+                    sourceName: 'Wttr.in',
                     logoUrl: 'https://wttr.in/favicon.ico',
                     sourceUrl: 'https://wttr.in/',
                     icon: $this->getWeatherIcon((int) $current['weatherCode'])
@@ -144,7 +144,7 @@ class WttrinService implements WeatherProviderInterface, ForecastProviderInterfa
                 $weatherCode = (int) $day['hourly'][4]['weatherCode']; // Utilise les données de 12h
 
                 $forecasts[] = new ForecastData(
-                    provider: 'wttr.in',
+                    provider: 'Wttr.in',
                     date: $date,
                     tmin: (float) $day['mintempC'],
                     tmax: (float) $day['maxtempC'],
@@ -246,7 +246,7 @@ class WttrinService implements WeatherProviderInterface, ForecastProviderInterfa
 
                     try {
                         $result[] = new HourlyForecastData(
-                            provider: 'wttr.in',
+                            provider: 'Wttr.in',
                             time: $dt,
                             temperature: (float) $entry['tempC'],
                             description: $entry['lang_fr'][0]['value'] ?? $entry['weatherDesc'][0]['value'] ?? 'Unknown',
