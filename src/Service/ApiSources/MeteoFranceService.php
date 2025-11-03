@@ -63,7 +63,7 @@ class MeteoFranceService implements WeatherProviderInterface, ForecastProviderIn
                     humidity: $currentHourly['humidity'] ?? null,
                     wind: $currentHourly['wind']['speed'] ?? 0,
                     sourceName: 'Météo-France',
-                    logoUrl: 'https://meteofrance.com/themes/custom/meteofrance/favicon.ico',
+                    logoUrl: 'https://meteofrance.com/sites/meteofrance.com/files/logo/LOGO_MF.png',
                     sourceUrl: 'https://meteofrance.com/',
                     icon: $displayMeteo['icon']
                 );
@@ -89,7 +89,7 @@ class MeteoFranceService implements WeatherProviderInterface, ForecastProviderIn
                     humidity: null,
                     wind: 0,
                     sourceName: 'Météo-France',
-                    logoUrl: 'https://meteofrance.com/themes/custom/meteofrance/favicon.ico',
+                    logoUrl: 'https://meteofrance.com/sites/meteofrance.com/files/logo/LOGO_MF.png',
                     sourceUrl: 'https://meteofrance.com/',
                     icon: null,
                     enabled: false
@@ -107,21 +107,53 @@ class MeteoFranceService implements WeatherProviderInterface, ForecastProviderIn
         // Codes météo Météo-France
         return match ($code) {
             '1', 'p1j', 'p1n' => ['label' => 'Ensoleillé', 'emoji' => '☀️', 'icon' => 'wi wi-day-sunny'],
+            'p1bisj', 'p1bisn' => ['label' => 'Ensoleillé voilé', 'emoji' => '🌤️', 'icon' => 'wi wi-day-sunny-overcast'],
+
             '2', 'p2j', 'p2n' => ['label' => 'Éclaircies', 'emoji' => '🌤️', 'icon' => 'wi wi-day-sunny-overcast'],
+            'p2bisj', 'p2bisn' => ['label' => 'Éclaircies voilées', 'emoji' => '🌤️', 'icon' => 'wi wi-day-sunny-overcast'],
+
             '3', 'p3j', 'p3n' => ['label' => 'Nuageux', 'emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
+            'p3bisj', 'p3bisn' => ['label' => 'Nuageux partiel', 'emoji' => '⛅', 'icon' => 'wi wi-day-cloudy'],
+
             '4', 'p4j', 'p4n' => ['label' => 'Couvert', 'emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
+            'p4bisj', 'p4bisn' => ['label' => 'Couvert léger', 'emoji' => '☁️', 'icon' => 'wi wi-cloudy'],
+
             '5', 'p5j', 'p5n' => ['label' => 'Brouillard', 'emoji' => '🌫️', 'icon' => 'wi wi-fog'],
+            'p5bisj', 'p5bisn' => ['label' => 'Brouillard léger', 'emoji' => '🌫️', 'icon' => 'wi wi-fog'],
+
             '6', 'p6j', 'p6n' => ['label' => 'Bruine', 'emoji' => '🌧️', 'icon' => 'wi wi-sprinkle'],
+            'p6bisj', 'p6bisn' => ['label' => 'Bruine faible', 'emoji' => '🌦️', 'icon' => 'wi wi-sprinkle'],
+
             '7', 'p7j', 'p7n' => ['label' => 'Pluie', 'emoji' => '🌧️', 'icon' => 'wi wi-rain'],
+            'p7bisj', 'p7bisn' => ['label' => 'Pluie modérée', 'emoji' => '🌧️', 'icon' => 'wi wi-rain'],
+
             '8', 'p8j', 'p8n' => ['label' => 'Averses', 'emoji' => '🌦️', 'icon' => 'wi wi-showers'],
+            'p8bisj', 'p8bisn' => ['label' => 'Averses isolées', 'emoji' => '🌧️', 'icon' => 'wi wi-showers'],
+
             '9', 'p9j', 'p9n' => ['label' => 'Orage', 'emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
+            'p9bisj', 'p9bisn' => ['label' => 'Orage localisé', 'emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
+
             '10', 'p10j', 'p10n' => ['label' => 'Neige', 'emoji' => '❄️', 'icon' => 'wi wi-snow'],
+            'p10bisj', 'p10bisn' => ['label' => 'Neige faible', 'emoji' => '🌨️', 'icon' => 'wi wi-snow'],
+
             '11', 'p11j', 'p11n' => ['label' => 'Grêle', 'emoji' => '🌨️', 'icon' => 'wi wi-hail'],
+            'p11bisj', 'p11bisn' => ['label' => 'Grêle locale', 'emoji' => '🌨️', 'icon' => 'wi wi-hail'],
+
             '12', 'p12j', 'p12n' => ['label' => 'Pluie verglaçante', 'emoji' => '🌧️', 'icon' => 'wi wi-rain-mix'],
+            'p12bisj', 'p12bisn' => ['label' => 'Verglas faible', 'emoji' => '🌧️', 'icon' => 'wi wi-rain-mix'],
+
             '13', 'p13j', 'p13n' => ['label' => 'Neige faible', 'emoji' => '❄️', 'icon' => 'wi wi-snow'],
+            'p13bisj', 'p13bisn' => ['label' => 'Neige très faible', 'emoji' => '❄️', 'icon' => 'wi wi-snow'],
+
             '14', 'p14j', 'p14n' => ['label' => 'Pluie et neige', 'emoji' => '🌨️', 'icon' => 'wi wi-sleet'],
+            'p14bisj', 'p14bisn' => ['label' => 'Pluie/neige légère', 'emoji' => '🌨️', 'icon' => 'wi wi-sleet'],
+
             '15', 'p15j', 'p15n' => ['label' => 'Averses de neige', 'emoji' => '❄️', 'icon' => 'wi wi-snow'],
+            'p15bisj', 'p15bisn' => ['label' => 'Averses de neige faibles', 'emoji' => '❄️', 'icon' => 'wi wi-snow'],
+
             '16', 'p16j', 'p16n' => ['label' => 'Orageux', 'emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
+            'p16bisj', 'p16bisn' => ['label' => 'Orage modéré', 'emoji' => '⛈️', 'icon' => 'wi wi-thunderstorm'],
+
             default => $this->logUnknownWeather($code),
         };
     }
