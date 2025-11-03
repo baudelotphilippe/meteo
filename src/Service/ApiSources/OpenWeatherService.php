@@ -133,6 +133,14 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
 
         if (!$item->isHit() || !$this->meteo_cache) {
             $data = $this->getForecastApiInformations($locationCoordinates);
+
+            // Vérifier que les données sont disponibles
+            if (empty($data) || !isset($data['list'])) {
+                $this->logger->warning('OpenWeather API: No forecast data available');
+
+                return [];
+            }
+
             $grouped = [];
             $this->hourlyToday = $data['list'];
             foreach ($data['list'] as $entry) {
@@ -203,15 +211,24 @@ class OpenWeatherService implements WeatherProviderInterface, ForecastProviderIn
     {
         if (empty($this->hourlyToday)) {
             $data = $this->getForecastApiInformations($locationCoordinates);
+
+            // Vérifier que les données sont disponibles
+            if (empty($data) || !isset($data['list'])) {
+                $this->logger->warning('OpenWeather API: No hourly forecast data available');
+
+                return [];
+            }
+
             $this->hourlyToday = $data['list'];
         }
 
-        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day', new \DateTimeZone('Europe/Paris')));
         $result = [];
         foreach ($this->hourlyToday as $entry) {
             $dt = new \DateTimeImmutable($entry['dt_txt']);
-            if ($dt >= $today && $dt < $tomorrow) {
+            // Ne garder que les heures entre maintenant et demain à la même heure
+            if ($dt >= $now && $dt < $tomorrow) {
                 try {
                     $result[] = new HourlyForecastData(
                         provider: 'OpenWeather',

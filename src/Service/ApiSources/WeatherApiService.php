@@ -136,6 +136,14 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
 
         if (!$item->isHit() || !$this->meteo_cache) {
             $data = $this->getForecastApiInformations($locationCoordinates);
+
+            // Vérifier que les données sont disponibles
+            if (empty($data) || !isset($data['forecast']['forecastday'])) {
+                $this->logger->warning('WeatherAPI: No forecast data available');
+
+                return [];
+            }
+
             $this->hourlyToday = $data['forecast']['forecastday'];
 
             $forecasts = [];
@@ -193,18 +201,27 @@ class WeatherApiService implements WeatherProviderInterface, ForecastProviderInt
     {
         if (empty($this->hourlyToday)) {
             $data = $this->getForecastApiInformations($locationCoordinates);
+
+            // Vérifier que les données sont disponibles
+            if (empty($data) || !isset($data['forecast']['forecastday'])) {
+                $this->logger->warning('WeatherAPI: No hourly forecast data available');
+
+                return [];
+            }
+
             $this->hourlyToday = $data['forecast']['forecastday'];
         }
 
-        $today = (new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Paris'));
-        $tomorrow = (new \DateTimeImmutable('+1 day'))->setTimezone(new \DateTimeZone('Europe/Paris'));
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris'));
+        $tomorrow = (new \DateTimeImmutable('+1 day', new \DateTimeZone('Europe/Paris')));
         $result = [];
 
         $infos = ['today' => 0, 'tomorrow' => 1];
         foreach ($infos as $day => $dayposition) {
             foreach ($this->hourlyToday[$dayposition]['hour'] as $hour) {
                 $dt = new \DateTimeImmutable($hour['time']);
-                if ($dt >= $today && $dt < $tomorrow) {
+                // Ne garder que les heures entre maintenant et demain à la même heure
+                if ($dt >= $now && $dt < $tomorrow) {
                     try {
                         $result[] = new HourlyForecastData(
                             provider: 'WeatherAPI',

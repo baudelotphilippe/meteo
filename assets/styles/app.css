@@ -1,9 +1,33 @@
+/* Variables de thème */
+:root {
+  --bg-color: #f8f9fa;
+  --text-color: #212529;
+  --card-bg: #fff;
+  --card-border: #dee2e6;
+  --link-color: #000;
+  --forecast-bg: #f8f9fa;
+  --filter-shadow: #000;
+  --icon-color: #444;
+}
+
+[data-theme="dark"] {
+  --bg-color: #1a1a1a;
+  --text-color: #e0e0e0;
+  --card-bg: #2d2d2d;
+  --card-border: #404040;
+  --link-color: #e0e0e0;
+  --forecast-bg: #252525;
+  --filter-shadow: #fff;
+  --icon-color: #ffd700;
+}
+
 body {
-  background-color: #f8f9fa;
-  color: #212529;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 1rem;
   line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1, h2 {
@@ -13,13 +37,13 @@ h1, h2 {
 }
 
 a{
-    color: #000;
+    color: var(--link-color);
 }
 .card {
-  background-color: #fff;
-  border: 1px solid #dee2e6;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 0.5rem;
-  transition: box-shadow 0.2s ease-in-out;
+  transition: box-shadow 0.2s ease-in-out, background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .card:hover {
@@ -33,12 +57,12 @@ a{
 .card-title {
   font-weight: 600;
   font-size: 1.1rem;
-  color: #000;
+  color: var(--link-color);
 }
 
 .card-footer {
   padding: 0.75rem;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--card-border);
 }
 
 .weather-chart {
@@ -61,13 +85,14 @@ a{
 }
 
 .forecast-cell {
-  background: #f8f9fa;
+  background: var(--forecast-bg);
   border-radius: 4px;
   padding: 6px 8px;
   min-width: 95px;
   flex-shrink: 0;
   text-align: center;
   font-size: 0.85rem;
+  transition: background-color 0.3s ease;
 }
 
 .forecast-date {
@@ -79,6 +104,17 @@ a{
 .forecast-icon {
   font-size: 3rem;
   margin-bottom: 4px;
+}
+
+.forecast-icon i {
+  color: var(--icon-color);
+  transition: color 0.3s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .forecast-icon i {
+  filter: brightness(1.2);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 .forecast-temps {
@@ -122,7 +158,41 @@ a{
 }
 
 #filter-bar .filter-btn.active {
-  box-shadow: inset 0 0 0 1px #000;
+  box-shadow: inset 0 0 0 1px var(--filter-shadow);
+}
+
+/* Bouton de toggle dark mode */
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--card-bg);
+  border: 2px solid var(--card-border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+.theme-toggle-icon {
+  display: block;
+  line-height: 1;
 }
 
 .weather-icon {
@@ -160,4 +230,12 @@ a{
 
 .source-weatherapi {
     color: rgba(197, 225, 165, 0.5); /* vert */
+}
+
+.source-météo-france {
+    color: rgba(188, 170, 230, 0.5); /* violet */
+}
+
+.source-wttr-in {
+    color: rgba(102, 204, 255, 0.5); /* cyan */
 }

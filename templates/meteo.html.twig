@@ -1,5 +1,9 @@
 {% extends 'base.html.twig' %}
 
+{% block javascripts %}
+	<script src="{{ asset('js/weather-charts.js') }}"></script>
+{% endblock %}
+
 {% block body %}
 	<section class="container my-4">
 		<h1 class="mb-1">Météo à
@@ -15,6 +19,8 @@
     'Open-Meteo': { border: '#A7C7E7', background: 'rgba(167, 199, 231, 0.1)' },
     'OpenWeather': { border: '#FFD180', background: 'rgba(255, 209, 128, 0.1)' },
     'WeatherAPI': { border: '#C5E1A5', background: 'rgba(197, 225, 165, 0.1)' },
+    'Météo-France': { border: '#BCAAE6', background: 'rgba(188, 170, 230, 0.1)' },
+    'Wttr.in': { border: '#66CCFF', background: 'rgba(102, 204, 255, 0.1)' },
   } %}
 
 		<div class="text-center my-4" id="filter-bar">
@@ -87,108 +93,32 @@
 			{% endfor %}
 		</div>
 
-		 <script>
-	
-		const iconPlugin = {
-			id: 'weatherIcons',
-			afterDatasetsDraw(chart) {
-			chart.data.datasets.forEach((dataset, datasetIndex) => {
-				const meta = chart.getDatasetMeta(datasetIndex);
-				if (!dataset.icons || meta.hidden) return;
-				meta.data.forEach((point, i) => {
-				const icon = dataset.icons[i];
-				if (icon && point && !isNaN(dataset.data[i])) {
-					chart.ctx.save();
-					chart.ctx.font = '16px sans-serif';
-					chart.ctx.textAlign = 'center';
-					chart.ctx.fillText(icon, point.x, point.y - 20);
-					chart.ctx.restore();
-				}
-				});
-			});
-			}
-		};
-
-	{% for source in sources %}
-		{% set provider = source.provider %}
-		{% if todayHourly[provider] is defined %}
-		new Chart(document.getElementById('chart-{{ loop.index }}'), {
-			type: 'line',
-			data: {
-			labels: {{ todayHourly[provider].labels|json_encode|raw }},
-			datasets: [{
-				label: '{{ provider }}',
-				data: {{ todayHourly[provider].temperatures|json_encode|raw }},
-				borderColor: '{{ colors[provider].border }}',
-				backgroundColor: '{{ colors[provider].background }}',
-				fill: false,
-				tension: 0.3,
-				pointRadius: 4,
-				spanGaps: true,
-				icons: {{ todayHourly[provider].emoji|json_encode|raw }}
-			}]
-			},
-			options: {
-			responsive: true,
-			maintainAspectRatio: false,
-			scales: {
-				x: {
-					ticks: 
-						{ autoSkip: false ,
-						font: {
-							size: window.innerWidth < 600 ? 10 : 12
-						}
-					},
+		<script>
+		// Initialisation des graphiques avec les données du serveur
+		{% for source in sources %}
+			{% set provider = source.provider %}
+			{% if todayHourly[provider] is defined %}
+			chartInstances.push(new Chart(document.getElementById('chart-{{ loop.index }}'), {
+				type: 'line',
+				data: {
+					labels: {{ todayHourly[provider].labels|json_encode|raw }},
+					datasets: [{
+						label: '{{ provider }}',
+						data: {{ todayHourly[provider].temperatures|json_encode|raw }},
+						borderColor: '{{ colors[provider].border }}',
+						backgroundColor: '{{ colors[provider].background }}',
+						fill: false,
+						tension: 0.3,
+						pointRadius: 4,
+						spanGaps: true,
+						icons: {{ todayHourly[provider].emoji|json_encode|raw }}
+					}]
 				},
-				y: {
-					position: 'left',
-					min: 0,
-					max: 40,
-				},
-				yRight: {
-					position: 'right',
-					min: 0,
-					max: 40,
-					grid: { drawOnChartArea: false }, // empêche double quadrillage
-				}
-			},
-			plugins: {
-				legend: { display: false }
-			}
-			},
-			plugins: [iconPlugin]
-		});
-		{% endif %}
-	{% endfor %}
-
-	// btns filter			
-	const buttons = document.querySelectorAll('.filter-btn');
-	const cards = document.querySelectorAll('.provider-card');
-	
-	document.querySelector('.filter-btn[data-target="all"]').addEventListener('click', () => {
-		cards.forEach(card => card.style.display = 'block');
-		buttons.forEach(btn => btn.classList.remove('active'));
-		document.querySelector('.filter-btn[data-target="all"]').classList.add('active');
-	});
-	
-	buttons.forEach(button => {
-		if (button.dataset.target === 'all') return;
-	
-		button.addEventListener('click', () => {
-			button.classList.toggle('active');
-			document.querySelector('.filter-btn[data-target="all"]').classList.remove('active');
-		
-			const activeTargets = Array.from(buttons)
-				.filter(btn => btn.classList.contains('active') && btn.dataset.target !== 'all')
-				.map(btn => btn.dataset.target);
-		
-			cards.forEach(card => {
-				const matches = activeTargets.some(target => card.classList.contains(target));
-				card.style.display = matches || activeTargets.length === 0 ? 'block' : 'none';
-			});
-		});
-	});
-		
-	</script>
+				options: getChartOptions(),
+				plugins: [iconPlugin]
+			}));
+			{% endif %}
+		{% endfor %}
+		</script>
 </section>
 {% endblock %}
