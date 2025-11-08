@@ -86,7 +86,7 @@
     ],
     "cs": "php-cs-fixer fix src --dry-run --diff",
     "cs-fix": "php-cs-fixer fix src ",
-    "stan": "phpstan analyse src",
+    "stan": "php -d memory_limit=1G vendor/bin/phpstan analyse src",
     "test": "bin/phpunit tests"
   },
   "conflict": {
