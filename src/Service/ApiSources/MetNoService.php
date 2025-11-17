@@ -57,7 +57,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $first = $data['properties']['timeseries'][0];
 
                 $details = $first['data']['instant']['details'];
-                $symbolCode = $first['data']['next_1_hours']['summary']['symbol_code'] ?? null;
+                $symbolCode = $first['data']['next_1_hours']['summary']['symbol_code'] ?? '';
                 $displayMeteo = $this->getSymbolMeta($symbolCode);
 
                 $weather = new WeatherData(
@@ -191,7 +191,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                 $symbols = array_column($dataList, 'symbol');
 
                 // prends au milieu de la journée pour savoir quel symbol utiliser
-                $symbol = $symbols[(int) round(count($symbols) / 2)] ?? null;
+                $symbol = $symbols[(int) round(count($symbols) / 2)] ?? '';
                 $displayMeteo = $this->getSymbolMeta($symbol);
 
                 $forecasts[] = new ForecastData(
@@ -263,7 +263,7 @@ class MetNoService implements WeatherProviderInterface, ForecastProviderInterfac
                     continue;
                 }
                 $temp = $details['air_temperature'];
-                $symbolCode = $entry['data']['next_1_hours']['summary']['symbol_code'] ?? null;
+                $symbolCode = $entry['data']['next_1_hours']['summary']['symbol_code'] ?? '';
                 $displayMeteo = $this->getSymbolMeta($symbolCode);
 
                 try {
